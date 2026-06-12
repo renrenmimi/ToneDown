@@ -11,6 +11,13 @@ interface WebkitAudioWindow extends Window {
   webkitAudioContext?: AudioContextCtor
 }
 
+export function isAudioAnalyserSupported(): boolean {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return false
+  }
+  return Boolean(window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext)
+}
+
 interface UseAudioAnalyserResult {
   volume: number
   volumeHistory: number[]
@@ -37,13 +44,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
   const streamRef = useRef<MediaStream | null>(null)
   const intervalRef = useRef<number | null>(null)
 
-  const isSupported = useMemo(() => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      return false
-    }
-
-    return Boolean(window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext)
-  }, [])
+  const isSupported = useMemo(() => isAudioAnalyserSupported(), [])
 
   const clearSamplingInterval = () => {
     if (intervalRef.current !== null) {

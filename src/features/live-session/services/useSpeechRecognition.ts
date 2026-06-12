@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AppLanguage, TranscriptEntry } from '../types/app'
+import type { AppLanguage, TranscriptEntry } from '@/types/app'
 
 interface SpeechRecognitionAlternativeLike {
   transcript: string
@@ -64,6 +64,10 @@ interface UseSpeechRecognitionResult {
 const getSpeechRecognitionCtor = (): SpeechRecognitionCtor | null => {
   const speechWindow = window as SpeechRecognitionWindow
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
+}
+
+export function isSpeechRecognitionSupported(): boolean {
+  return Boolean(getSpeechRecognitionCtor())
 }
 
 /**

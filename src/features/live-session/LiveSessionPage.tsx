@@ -1,159 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CalmReminder } from './components/CalmReminder'
 import { ToneSuggestion } from './components/ToneSuggestion'
-import { useAudioAnalyser } from './hooks/useAudioAnalyser'
-import { useEmotionDetector } from './hooks/useEmotionDetector'
-import { useGroqTranscriber } from './hooks/useGroqTranscriber'
-import { useRewriteSuggestion } from './hooks/useRewriteSuggestion'
-import { useSpeechRate } from './hooks/useSpeechRate'
-import { useSpeechRecognition } from './hooks/useSpeechRecognition'
-import { useToneAnalysis } from './hooks/useToneAnalysis'
-import { useTranscriptStream } from './hooks/useTranscriptStream'
+import { useLiveSessionT } from './i18n'
+import {
+  useEngines,
+  useInterim,
+  useScoreHistory,
+  useSession,
+  useSessionError,
+  useSessionPhase,
+  useSessionScore,
+  useEmotionLevel,
+  useTranscript,
+} from './machine/selectors'
+import { fusionSignal, sessionStore, volumeSignal } from './machine/sessionStore'
+import { SessionServices } from './services/SessionServices'
+import { isAudioAnalyserSupported } from './services/useAudioAnalyser'
+import { useRewriteSuggestion } from './services/useRewriteSuggestion'
+import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
+import { useSignalValue } from '@/shared/state/signalBus'
+import { useLocale } from '@/shared/i18n/localeContext'
 import type {
   AppLanguage,
   EmotionHistoryEntry,
   EmotionLevel,
-  SpeedLevel,
   TranscriptEntry,
-} from './types/app'
+} from '@/types/app'
 
 const TIMELINE_WINDOW_MS = 5 * 60_000
 
-const I18N: Record<
-  AppLanguage,
-  {
-    subtitle: string
-    intro: string
-    start: string
-    stop: string
-    listeningTime: string
-    dashboard: string
-    transcript: string
-    engineGroq: string
-    engineBrowser: string
-    sttUnavailable: string
-    rulesMode: string
-    toneSuggestion: string
-    toneSuggestionHint: string
-    toneSuggestionEmpty: string
-    toneSuggestionDetected: string
-    timeline: string
-    timelineEmpty: string
-    notSupported: string
-    permissionDenied: string
-    metrics: {
-      volume: string
-      speed: string
-      trend: string
-    }
-    trend: {
-      up: string
-      down: string
-      flat: string
-    }
-    speedLabel: Record<SpeedLevel, string>
-    speedUnit: string
-    interim: string
-    emptyTranscript: string
-    emotionState: Record<EmotionLevel, string>
-    disclaimer: string
-  }
-> = {
-  'zh-CN': {
-    subtitle: '情侣语气检测助手',
-    intro: '实时检测你的语气强度，帮助你把对话拉回冷静区。',
-    start: '开始检测',
-    stop: '停止',
-    listeningTime: '录音时长',
-    dashboard: '实时情绪仪表盘',
-    transcript: '实时语音转文字',
-    toneSuggestion: 'AI 语气建议',
-    toneSuggestionHint: '检测到高危措辞时，下方会自动弹出替代表达卡片。',
-    toneSuggestionEmpty: '当前未检测到高危关键词。',
-    toneSuggestionDetected: '检测到的关键词',
-    engineGroq: 'Groq 语音识别',
-    engineBrowser: '浏览器识别',
-    sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
-    rulesMode: 'LLM 离线 · 规则模式',
-    timeline: '情绪变化时间线（最近 5 分钟）',
-    timelineEmpty: '开始说话后，这里会出现情绪变化曲线。',
-    notSupported: '请使用 Chrome 或 Edge 浏览器以获得最佳体验',
-    permissionDenied: '麦克风权限被拒绝，请在浏览器设置中允许麦克风后重试。',
-    metrics: {
-      volume: '音量',
-      speed: '语速',
-      trend: '趋势',
-    },
-    trend: {
-      up: '上升',
-      down: '下降',
-      flat: '平稳',
-    },
-    speedLabel: {
-      slow: '偏慢',
-      normal: '正常',
-      fast: '偏快',
-      very_fast: '很快',
-    },
-    speedUnit: '字/分',
-    interim: '识别中',
-    emptyTranscript: '还没有识别到文本，开始说话后会实时显示。',
-    emotionState: {
-      calm: '一切平和',
-      elevated: '语气有些激动',
-      heated: '情绪正在升温',
-      critical: '需要冷静一下',
-    },
-    disclaimer: '本工具仅为沟通辅助，不提供心理咨询服务',
-  },
-  'en-US': {
-    subtitle: 'Couple Tone Tracking Assistant',
-    intro: 'Track your tone in real time and bring conversations back to calm.',
-    start: 'Start Detection',
-    stop: 'Stop',
-    listeningTime: 'Recording time',
-    dashboard: 'Live Emotion Dashboard',
-    transcript: 'Live Speech Transcript',
-    toneSuggestion: 'AI Tone Suggestions',
-    toneSuggestionHint: 'When high-risk phrases are detected, a replacement card appears automatically.',
-    toneSuggestionEmpty: 'No high-risk keyword detected at the moment.',
-    toneSuggestionDetected: 'Detected keywords',
-    engineGroq: 'Groq Whisper',
-    engineBrowser: 'Browser STT',
-    sttUnavailable: 'Speech transcription is temporarily unavailable; scoring on volume only.',
-    rulesMode: 'LLM offline · rules mode',
-    timeline: 'Emotion Timeline (Last 5 Minutes)',
-    timelineEmpty: 'The emotion curve will appear once speech is detected.',
-    notSupported: 'Please use Chrome or Edge for the best experience',
-    permissionDenied: 'Microphone access was denied. Please allow it in browser settings.',
-    metrics: {
-      volume: 'Volume',
-      speed: 'Speed',
-      trend: 'Trend',
-    },
-    trend: {
-      up: 'Rising',
-      down: 'Cooling',
-      flat: 'Steady',
-    },
-    speedLabel: {
-      slow: 'slow',
-      normal: 'normal',
-      fast: 'fast',
-      very_fast: 'very fast',
-    },
-    speedUnit: 'wpm',
-    interim: 'Listening',
-    emptyTranscript: 'No transcript yet. Start speaking to see live text.',
-    emotionState: {
-      calm: 'Everything is calm',
-      elevated: 'Tone is getting tense',
-      heated: 'Emotion is rising',
-      critical: 'Time to cool down',
-    },
-    disclaimer: 'This tool is for communication support only and is not counseling.',
-  },
-}
 
 const EMOTION_EMOJI: Record<EmotionLevel, string> = {
   calm: '🟢',
@@ -302,73 +177,43 @@ function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) 
   )
 }
 
-function App() {
-  const [isMonitoring, setIsMonitoring] = useState(false)
-  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null)
+function LiveSessionPage() {
   const [nowTick, setNowTick] = useState(() => Date.now())
-  const [language, setLanguage] = useState<AppLanguage>('zh-CN')
+  const { locale: language, setLocale } = useLocale()
 
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
 
-  const copy = I18N[language]
+  const copy = useLiveSessionT()
 
-  const audio = useAudioAnalyser()
-  const stream = useTranscriptStream()
-  const speech = useSpeechRecognition({
-    language,
-    onFinalEntries: stream.addFinal,
-    onInterim: stream.setInterim,
-  })
-  const transcriber = useGroqTranscriber({
-    mediaStream: audio.mediaStream,
-    volume: audio.volume,
-    isActive: isMonitoring,
-    language,
-    onFinalEntries: stream.addFinal,
-  })
+  // The session machine is the single source of truth; the UI reads slices.
+  const phase = useSessionPhase()
+  const score = useSessionScore()
+  const emotionLevel = useEmotionLevel()
+  const history = useScoreHistory()
+  const transcript = useTranscript()
+  const interim = useInterim()
+  const engines = useEngines()
+  const sessionError = useSessionError()
+  const sessionStartedAt = useSession((s) => s.startedAt)
+  const isMonitoring = phase !== 'idle' && phase !== 'recap'
 
-  const { wordsPerMinute, speedLevel } = useSpeechRate(stream.entries, language)
-  const toneAnalysis = useToneAnalysis({
-    entries: stream.entries,
-    language,
-    isActive: isMonitoring,
-  })
-  const emotion = useEmotionDetector({
-    volume: audio.volume,
-    speedLevel,
-    transcript: stream.entries,
-    isActive: isMonitoring,
-    llmTone: toneAnalysis.latest,
-    llmAvailable: toneAnalysis.available,
-  })
-  const resetEmotion = emotion.reset
+  // Per-tick fusion byproducts + live mic level, off the signal bus.
+  const frame = useSignalValue(fusionSignal)
+  const volume = useSignalValue(volumeSignal)
+
   const rewrite = useRewriteSuggestion({
-    score: emotion.score,
-    latestHighRiskKeyword: emotion.latestHighRiskKeyword,
-    entries: stream.entries,
+    score,
+    latestHighRiskKeyword: frame.latestHighRiskKeyword,
+    entries: transcript,
     language,
     isActive: isMonitoring,
   })
 
   // Groq STT only needs mic + MediaRecorder; Web Speech is an optional fallback.
-  const isBrowserSupported = audio.isSupported
+  const isBrowserSupported = isAudioAnalyserSupported()
   const sttUnavailable =
-    isMonitoring && transcriber.engine === 'browser' && !speech.isSupported
-  const trend = getTrend(emotion.history)
-
-  // When the Groq pipeline degrades, run the Web Speech fallback; stop it
-  // again once a recovery probe brings the Groq engine back.
-  const speechStart = speech.start
-  const speechStop = speech.stop
-  useEffect(() => {
-    if (!isMonitoring || transcriber.engine !== 'browser' || !speech.isSupported) {
-      return
-    }
-    speechStart()
-    return () => {
-      speechStop()
-    }
-  }, [isMonitoring, speech.isSupported, speechStart, speechStop, transcriber.engine])
+    isMonitoring && engines.stt === 'browser' && !isSpeechRecognitionSupported()
+  const trend = getTrend(history)
 
   const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'
   const trendLabel = copy.trend[trend]
@@ -376,42 +221,24 @@ function App() {
   const ringProgress = useMemo(() => {
     const radius = 86
     const circumference = 2 * Math.PI * radius
-    const strokeOffset = circumference * (1 - emotion.score / 100)
+    const strokeOffset = circumference * (1 - score / 100)
     return { radius, circumference, strokeOffset }
-  }, [emotion.score])
+  }, [score])
 
-  const permissionDenied =
-    audio.error === 'MIC_PERMISSION_DENIED' || speech.error === 'SPEECH_PERMISSION_DENIED'
+  const permissionDenied = sessionError === 'MIC_PERMISSION_DENIED'
   const elapsedSeconds =
     isMonitoring && sessionStartedAt ? Math.max(0, Math.floor((nowTick - sessionStartedAt) / 1000)) : 0
 
-  const toggleMonitoring = useCallback(async () => {
+  const toggleMonitoring = useCallback(() => {
     if (isMonitoring) {
-      setIsMonitoring(false)
-      setSessionStartedAt(null)
-      audio.stopListening()
+      sessionStore.dispatch({ type: 'STOP_REQUESTED', at: Date.now() })
       return
     }
-
     if (!isBrowserSupported) {
       return
     }
-
-    audio.clearError()
-    speech.clearError()
-    stream.clear()
-    resetEmotion()
-
-    const audioReady = await audio.startListening()
-    if (!audioReady) {
-      audio.stopListening()
-      setIsMonitoring(false)
-      return
-    }
-
-    setSessionStartedAt(Date.now())
-    setIsMonitoring(true)
-  }, [audio, isBrowserSupported, isMonitoring, resetEmotion, speech, stream])
+    sessionStore.dispatch({ type: 'START_REQUESTED' })
+  }, [isBrowserSupported, isMonitoring])
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -429,17 +256,17 @@ function App() {
     }
 
     transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight
-  }, [stream.interim, stream.entries])
+  }, [interim, transcript])
 
   const transcriptWithEmotion = useMemo(() => {
-    return stream.entries.map((entry) => {
-      const level = getEmotionAtTimestamp(entry.timestamp, emotion.history, emotion.emotionLevel)
+    return transcript.map((entry) => {
+      const level = getEmotionAtTimestamp(entry.timestamp, history, emotionLevel)
       return {
         ...entry,
         emotionLevel: level,
       }
     })
-  }, [emotion.emotionLevel, emotion.history, stream.entries])
+  }, [emotionLevel, history, transcript])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -458,7 +285,7 @@ function App() {
                     ? 'bg-emerald-500 text-slate-950'
                     : 'text-slate-300 hover:text-white'
                 }`}
-                onClick={() => setLanguage('zh-CN')}
+                onClick={() => setLocale('zh-CN')}
               >
                 中
               </button>
@@ -469,7 +296,7 @@ function App() {
                     ? 'bg-emerald-500 text-slate-950'
                     : 'text-slate-300 hover:text-white'
                 }`}
-                onClick={() => setLanguage('en-US')}
+                onClick={() => setLocale('en-US')}
               >
                 EN
               </button>
@@ -508,9 +335,7 @@ function App() {
                   ? 'bg-red-500 text-white animate-pulse'
                   : 'bg-emerald-500 hover:bg-emerald-400'
               }`}
-              onClick={() => {
-                void toggleMonitoring()
-              }}
+              onClick={toggleMonitoring}
               disabled={!isBrowserSupported}
             >
               {isMonitoring ? copy.stop : copy.start}
@@ -535,7 +360,7 @@ function App() {
                 cx="110"
                 cy="110"
                 r={ringProgress.radius}
-                stroke={emotion.emotionColor}
+                stroke={frame.emotionColor}
                 strokeWidth="16"
                 fill="none"
                 strokeLinecap="round"
@@ -546,29 +371,29 @@ function App() {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-3xl font-black text-slate-100">{emotion.score}</p>
-              <p className="mt-1 text-xl">{EMOTION_EMOJI[emotion.emotionLevel]}</p>
+              <p className="text-3xl font-black text-slate-100">{score}</p>
+              <p className="mt-1 text-xl">{EMOTION_EMOJI[emotionLevel]}</p>
               <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                {emotion.emotionLabel}
+                {emotionLevel}
               </p>
             </div>
           </div>
 
-          <p className="mt-2 text-center text-sm text-slate-300">{copy.emotionState[emotion.emotionLevel]}</p>
+          <p className="mt-2 text-center text-sm text-slate-300">{copy.emotionState[emotionLevel]}</p>
 
-          {isMonitoring && emotion.fusionMode === 'llm' && toneAnalysis.latest && (
+          {isMonitoring && frame.fusionMode === 'llm' && frame.llmTone && (
             <p className="mt-1 text-center text-xs text-slate-400">
-              <span className="font-semibold text-violet-300">{toneAnalysis.latest.tone}</span>
-              {toneAnalysis.latest.rationale ? ` · ${toneAnalysis.latest.rationale}` : ''}
+              <span className="font-semibold text-violet-300">{frame.llmTone.tone}</span>
+              {frame.llmTone.rationale ? ` · ${frame.llmTone.rationale}` : ''}
             </p>
           )}
 
           <div className="mt-5 grid grid-cols-3 gap-2">
-            <MetricCard label={copy.metrics.volume} value={`🔊 ${audio.volume}%`} />
+            <MetricCard label={copy.metrics.volume} value={`🔊 ${volume}%`} />
             <MetricCard
               label={copy.metrics.speed}
-              value={`🗣️ ${wordsPerMinute} ${copy.speedUnit}`}
-              description={copy.speedLabel[speedLevel]}
+              value={`🗣️ ${frame.wordsPerMinute} ${copy.speedUnit}`}
+              description={copy.speedLabel[frame.speedLevel]}
             />
             <MetricCard label={copy.metrics.trend} value={`📊 ${trendIcon}`} description={trendLabel} />
           </div>
@@ -579,19 +404,19 @@ function App() {
             <p className="text-sm font-medium text-slate-300">{copy.transcript}</p>
             {isMonitoring && (
               <span className="flex items-center gap-1.5">
-                {!toneAnalysis.available && (
+                {engines.analysis === 'rules' && (
                   <span className="rounded-full border border-slate-500/50 bg-slate-700/40 px-2 py-0.5 text-xs font-semibold text-slate-300">
                     {copy.rulesMode}
                   </span>
                 )}
                 <span
                   className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                    transcriber.engine === 'groq'
+                    engines.stt === 'groq'
                       ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
                       : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
                   }`}
                 >
-                  {transcriber.engine === 'groq' ? copy.engineGroq : copy.engineBrowser}
+                  {engines.stt === 'groq' ? copy.engineGroq : copy.engineBrowser}
                 </span>
               </span>
             )}
@@ -601,7 +426,7 @@ function App() {
             ref={transcriptContainerRef}
             className="max-h-56 min-h-40 overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950/60 p-3"
           >
-            {transcriptWithEmotion.length === 0 && !stream.interim && (
+            {transcriptWithEmotion.length === 0 && !interim && (
               <p className="text-sm text-slate-500">{copy.emptyTranscript}</p>
             )}
 
@@ -610,11 +435,11 @@ function App() {
                 <TranscriptItem key={entry.timestamp} entry={entry} />
               ))}
 
-              {stream.interim && (
+              {interim && (
                 <div className="flex items-start gap-2 text-sm italic text-slate-400">
                   <span className="mt-1 block h-2 w-2 rounded-full bg-slate-500" />
                   <p>
-                    {copy.interim}: {stream.interim}
+                    {copy.interim}: {interim}
                   </p>
                 </div>
               )}
@@ -624,11 +449,11 @@ function App() {
 
         <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
           <p className="mb-3 text-sm font-medium text-slate-300">{copy.toneSuggestion}</p>
-          {emotion.highRiskKeywords.length > 0 ? (
+          {frame.highRiskKeywords.length > 0 ? (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
               <p className="text-xs text-red-200">{copy.toneSuggestionDetected}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {emotion.highRiskKeywords.map((keyword) => (
+                {frame.highRiskKeywords.map((keyword) => (
                   <span
                     key={keyword}
                     className="rounded-full border border-red-400/40 bg-red-500/10 px-2 py-1 text-xs text-red-100"
@@ -649,7 +474,7 @@ function App() {
         <section className="mb-5">
           <p className="mb-3 text-sm font-medium text-slate-300">{copy.timeline}</p>
           <EmotionTimeline
-            history={emotion.history}
+            history={history}
             language={language}
             emptyLabel={copy.timelineEmpty}
             now={nowTick}
@@ -659,12 +484,12 @@ function App() {
         <footer className="px-2 text-center text-xs text-slate-500">{copy.disclaimer}</footer>
       </div>
 
+      <SessionServices />
       <ToneSuggestion
-        triggerKeyword={isMonitoring ? emotion.latestHighRiskKeyword : null}
+        triggerKeyword={isMonitoring ? frame.latestHighRiskKeyword : null}
         llmSuggestion={rewrite.suggestion}
-        language={language}
       />
-      <CalmReminder score={emotion.score} isActive={isMonitoring} language={language} />
+      <CalmReminder />
     </div>
   )
 }
@@ -698,4 +523,4 @@ function TranscriptItem({ entry }: TranscriptItemProps) {
   )
 }
 
-export default App
+export default LiveSessionPage

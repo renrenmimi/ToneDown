@@ -1,0 +1,74 @@
+import type {
+  AnalyzeResponse,
+  RewriteResponse,
+  ToneLabel,
+  TranscribeResponse,
+} from '@/types/api'
+
+// Client-side response guards. The server already schema-validates LLM
+// output (with a corrective retry); these only defend against transport
+// corruption or a proxy bug poisoning the UI — which is why they are
+// ~70 lines of combinators instead of a 13KB schema library. Server zod
+// schemas and these guards are both type-pinned to src/types/api.ts, so
+// wire-type drift fails `tsc -b` on whichever side lags.
+
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export const isString = (value: unknown): value is string => typeof value === 'string'
+
+export const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value)
+
+export const isOneOf =
+  <T extends string>(allowed: readonly T[]) =>
+  (value: unknown): value is T =>
+    typeof value === 'string' && (allowed as readonly string[]).includes(value)
+
+export const isArrayOf =
+  <T>(item: (value: unknown) => value is T) =>
+  (value: unknown): value is T[] =>
+    Array.isArray(value) && value.every(item)
+
+export const TONE_LABELS = [
+  'aggressive',
+  'passive-aggressive',
+  'defensive',
+  'neutral',
+  'positive',
+] as const
+
+export const isToneLabel = isOneOf<ToneLabel>(TONE_LABELS)
+
+export const clamp0to100 = (value: number): number =>
+  Math.min(100, Math.max(0, Math.round(value)))
+
+export function parseTranscribeResponse(data: unknown): TranscribeResponse | null {
+  if (!isRecord(data) || !isString(data.transcript) || !isString(data.language)) {
+    return null
+  }
+  return { transcript: data.transcript, language: data.language }
+}
+
+export function parseAnalyzeResponse(data: unknown): AnalyzeResponse | null {
+  if (
+    !isRecord(data) ||
+    !isToneLabel(data.tone) ||
+    !isFiniteNumber(data.intensity) ||
+    !isString(data.rationale)
+  ) {
+    return null
+  }
+  return {
+    tone: data.tone,
+    intensity: clamp0to100(data.intensity),
+    rationale: data.rationale,
+  }
+}
+
+export function parseRewriteResponse(data: unknown): RewriteResponse | null {
+  if (!isRecord(data) || !isString(data.rewrite) || data.rewrite.trim().length === 0) {
+    return null
+  }
+  return { rewrite: data.rewrite.trim() }
+}
