@@ -24,6 +24,7 @@ import { useLocale } from '@/shared/i18n/localeContext'
 import { BreathingGuide } from './components/BreathingGuide'
 import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
+import { Link } from 'wouter'
 import { Aurora } from '@/shared/ui/Aurora'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
@@ -181,6 +182,13 @@ function LiveSessionPage() {
               <p className="mt-1 text-sm font-medium text-ink-secondary">{copy.subtitle}</p>
             </div>
             <div className="flex items-center gap-2">
+            <Link
+              href="/history"
+              aria-label={copy.historyLink}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
+            >
+              📈
+            </Link>
             <ThemeToggle ariaLabel={copy.themeToggle} />
             <div className="rounded-full border border-line-strong bg-sunken/80 p-1">
               <button
