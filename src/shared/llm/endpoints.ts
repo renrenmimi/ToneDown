@@ -3,6 +3,8 @@ import type {
   AnalyzeResponse,
   DebriefRequest,
   DebriefResponse,
+  SparringRequest,
+  SparringResponse,
   RewriteRequest,
   RewriteResponse,
   TranscribeResponse,
@@ -13,6 +15,7 @@ import { estimateTextTokens, estimateTextsTokens } from './estimate'
 import {
   parseAnalyzeResponse,
   parseDebriefResponse,
+  parseSparringResponse,
   parseRewriteResponse,
   parseTranscribeResponse,
 } from './validators'
@@ -25,6 +28,8 @@ const REWRITE_FIXED_TOKENS = 150
 const REWRITE_MAX_OUTPUT = 200
 const DEBRIEF_FIXED_TOKENS = 280
 const DEBRIEF_MAX_OUTPUT = 500
+const SPARRING_FIXED_TOKENS = 260
+const SPARRING_MAX_OUTPUT = 220
 const SEGMENT_SECONDS = 4
 
 export function toLanguageHint(language: AppLanguage): 'zh' | 'en' {
@@ -101,4 +106,18 @@ export const debriefEndpoint = createEndpoint<DebriefRequest, DebriefResponse>({
     DEBRIEF_MAX_OUTPUT,
   encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
   validate: parseDebriefResponse,
+})
+
+export const sparringEndpoint = createEndpoint<SparringRequest, SparringResponse>({
+  path: '/api/sparring',
+  timeoutMs: 10_000,
+  breaker: 'sparring',
+  feature: 'sparring',
+  latencyStage: 'sparring',
+  estimateTokens: (req) =>
+    SPARRING_FIXED_TOKENS +
+    estimateTextsTokens(req.history.map((t) => t.text)) +
+    SPARRING_MAX_OUTPUT,
+  encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
+  validate: parseSparringResponse,
 })

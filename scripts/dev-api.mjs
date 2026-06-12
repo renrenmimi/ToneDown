@@ -30,6 +30,7 @@ const routes = {
   '/api/analyze': (await import('../api/analyze.ts')).default,
   '/api/rewrite': (await import('../api/rewrite.ts')).default,
   '/api/debrief': (await import('../api/debrief.ts')).default,
+  '/api/sparring': (await import('../api/sparring.ts')).default,
 }
 
 function readBody(req) {
