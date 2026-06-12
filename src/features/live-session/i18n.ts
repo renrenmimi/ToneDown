@@ -18,8 +18,13 @@ interface LiveSessionStrings {
   toneSuggestionHint: string
   toneSuggestionEmpty: string
   toneSuggestionDetected: string
-  timeline: string
-  timelineEmpty: string
+  ribbon: {
+    label: string
+    now: string
+    flagged: string
+    offered: string
+    close: string
+  }
   notSupported: string
   permissionDenied: string
   metrics: {
@@ -77,8 +82,13 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     toneSuggestionHint: '检测到高危措辞时，下方会自动弹出替代表达卡片。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
     toneSuggestionDetected: '检测到的关键词',
-    timeline: '情绪变化时间线（最近 5 分钟）',
-    timelineEmpty: '开始说话后，这里会出现情绪变化曲线。',
+    ribbon: {
+      label: '本次对话时间线（最近 10 分钟）',
+      now: '现在',
+      flagged: '被标记的瞬间',
+      offered: '当时建议的说法',
+      close: '关闭',
+    },
     notSupported: '请使用 Chrome 或 Edge 浏览器以获得最佳体验',
     permissionDenied: '麦克风权限被拒绝，请在浏览器设置中允许麦克风后重试。',
     metrics: {
@@ -145,8 +155,13 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       'When high-risk phrases are detected, a replacement card appears automatically.',
     toneSuggestionEmpty: 'No high-risk keyword detected at the moment.',
     toneSuggestionDetected: 'Detected keywords',
-    timeline: 'Emotion Timeline (Last 5 Minutes)',
-    timelineEmpty: 'The emotion curve will appear once speech is detected.',
+    ribbon: {
+      label: 'Session timeline (last 10 minutes)',
+      now: 'now',
+      flagged: 'Flagged moment',
+      offered: 'Offered instead',
+      close: 'Close',
+    },
     notSupported: 'Please use Chrome or Edge for the best experience',
     permissionDenied: 'Microphone access was denied. Please allow it in browser settings.',
     metrics: {

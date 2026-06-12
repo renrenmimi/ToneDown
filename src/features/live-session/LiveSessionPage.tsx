@@ -20,17 +20,15 @@ import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { useLocale } from '@/shared/i18n/localeContext'
 import { BreathingGuide } from './components/BreathingGuide'
+import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
 import { Aurora } from '@/shared/ui/Aurora'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
-  AppLanguage,
   EmotionHistoryEntry,
   EmotionLevel,
   TranscriptEntry,
 } from '@/types/app'
-
-const TIMELINE_WINDOW_MS = 5 * 60_000
 
 
 const EMOTION_DOT_CLASS: Record<EmotionLevel, string> = {
@@ -75,102 +73,6 @@ const getEmotionAtTimestamp = (
   }
 
   return history[0].emotionLevel
-}
-
-interface TimelineProps {
-  history: EmotionHistoryEntry[]
-  language: AppLanguage
-  emptyLabel: string
-  now: number
-}
-
-function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) {
-  const start = now - TIMELINE_WINDOW_MS
-  const recent = history.filter((item) => item.timestamp >= start)
-
-  if (recent.length < 2) {
-    return (
-      <div className="rounded-card border border-line bg-raised/80 p-4 text-sm text-ink-muted">
-        {emptyLabel}
-      </div>
-    )
-  }
-
-  const width = 320
-  const height = 168
-  const padding = 16
-  const chartWidth = width - padding * 2
-  const chartHeight = height - padding * 2
-
-  const scoreToY = (score: number) => {
-    return padding + (1 - score / 100) * chartHeight
-  }
-
-  const points = recent.map((item) => {
-    const ratio = (item.timestamp - start) / TIMELINE_WINDOW_MS
-    const x = padding + Math.min(1, Math.max(0, ratio)) * chartWidth
-    const y = scoreToY(item.score)
-    return { x, y, score: item.score }
-  })
-
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)},${point.y.toFixed(2)}`)
-    .join(' ')
-
-  const latest = points[points.length - 1]
-  const timeLabels = language === 'zh-CN' ? ['5分钟前', '现在'] : ['5m ago', 'now']
-
-  return (
-    <div className="rounded-card border border-line bg-raised/80 p-3 shadow-e2">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-44 w-full">
-        <rect
-          x={padding}
-          y={scoreToY(30)}
-          width={chartWidth}
-          height={scoreToY(0) - scoreToY(30)}
-          fill="var(--tone-calm)" fillOpacity={0.1}
-        />
-        <rect
-          x={padding}
-          y={scoreToY(55)}
-          width={chartWidth}
-          height={scoreToY(31) - scoreToY(55)}
-          fill="var(--tone-tense)" fillOpacity={0.1}
-        />
-        <rect
-          x={padding}
-          y={scoreToY(75)}
-          width={chartWidth}
-          height={scoreToY(56) - scoreToY(75)}
-          fill="var(--tone-heated)" fillOpacity={0.1}
-        />
-        <rect
-          x={padding}
-          y={scoreToY(100)}
-          width={chartWidth}
-          height={scoreToY(76) - scoreToY(100)}
-          fill="var(--tone-hostile)" fillOpacity={0.12}
-        />
-
-        <line
-          x1={padding}
-          y1={scoreToY(50)}
-          x2={padding + chartWidth}
-          y2={scoreToY(50)}
-          stroke="var(--border-strong)" strokeOpacity={0.5}
-          strokeDasharray="3 4"
-        />
-
-        <path d={path} fill="none" stroke="var(--tone-calm)" strokeWidth="3" strokeLinecap="round" />
-        <circle cx={latest.x} cy={latest.y} r="4.2" fill="var(--tone-calm)" />
-      </svg>
-
-      <div className="mt-1 flex items-center justify-between px-1 text-xs text-ink-muted">
-        <span>{timeLabels[0]}</span>
-        <span>{timeLabels[1]}</span>
-      </div>
-    </div>
-  )
 }
 
 function LiveSessionPage() {
@@ -452,19 +354,11 @@ function LiveSessionPage() {
           <p className="mt-3 text-xs text-ink-muted">{copy.toneSuggestionHint}</p>
         </section>
 
-        <section className="mb-5">
-          <p className="mb-3 text-sm font-medium text-ink-secondary">{copy.timeline}</p>
-          <EmotionTimeline
-            history={history}
-            language={language}
-            emptyLabel={copy.timelineEmpty}
-            now={nowTick}
-          />
-        </section>
 
         <footer className="px-2 text-center text-xs text-ink-muted">{copy.disclaimer}</footer>
       </div>
 
+      <SessionRibbon />
       <SessionServices />
       <ToneSuggestion
         triggerKeyword={isMonitoring ? frame.latestHighRiskKeyword : null}

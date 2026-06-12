@@ -27,6 +27,13 @@ export interface EngineState {
 
 export type SessionError = 'MIC_PERMISSION_DENIED' | 'MIC_INIT_FAILED' | null
 
+/** A hostile moment the coach flagged: shown as a ribbon marker with the offered rewrite. */
+export interface FlaggedMoment {
+  at: number
+  quote: string
+  rewrite: string
+}
+
 export interface SessionState {
   phase: SessionPhase
   startedAt: number | null
@@ -43,6 +50,7 @@ export interface SessionState {
   interventionCount: number
   engines: EngineState
   error: SessionError
+  flaggedMoments: FlaggedMoment[]
 }
 
 export type SessionEvent =
@@ -57,6 +65,7 @@ export type SessionEvent =
   | { type: 'INTERVENTION_ACKNOWLEDGED'; at: number }
   | { type: 'STOP_REQUESTED'; at: number }
   | { type: 'RECAP_CLOSED' }
+  | { type: 'REWRITE_OFFERED'; moment: FlaggedMoment }
   | { type: 'STT_ENGINE_CHANGED'; engine: EngineState['stt'] }
   | { type: 'ANALYSIS_MODE_CHANGED'; mode: EngineState['analysis'] }
 
@@ -76,6 +85,7 @@ export const INTERVENTION_DURATION_MS = 38_000
 export const INTERVENTION_COOLDOWN_MS = 60_000
 export const MAX_TRANSCRIPT_ENTRIES = 600
 export const MAX_HISTORY_POINTS = 300
+export const MAX_FLAGGED_MOMENTS = 20
 
 const ACTIVE_PHASES: readonly SessionPhase[] = [
   'calibrating',
@@ -100,6 +110,7 @@ export function createInitialSessionState(): SessionState {
     interventionCount: 0,
     engines: { stt: 'groq', analysis: 'rules' },
     error: null,
+    flaggedMoments: [],
   }
 }
 
@@ -172,6 +183,13 @@ export function sessionReducer(state: SessionState, event: SessionEvent): Sessio
         return stay(state)
       }
       return stay({ ...state, interim: event.text })
+    case 'REWRITE_OFFERED': {
+      if (!ACTIVE_PHASES.includes(state.phase)) {
+        return stay(state)
+      }
+      const moments = [...state.flaggedMoments, event.moment].slice(-MAX_FLAGGED_MOMENTS)
+      return stay({ ...state, flaggedMoments: moments })
+    }
     default:
       break
   }
