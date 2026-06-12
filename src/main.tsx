@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
+import { AppRoutes } from './routes.tsx'
 import { LocaleProvider } from './shared/i18n/LocaleProvider.tsx'
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -15,7 +15,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LocaleProvider>
-      <App />
+      <AppRoutes />
     </LocaleProvider>
   </StrictMode>,
 )
