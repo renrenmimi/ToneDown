@@ -183,6 +183,13 @@ function LiveSessionPage() {
             </div>
             <div className="flex items-center gap-2">
             <Link
+              href="/spar"
+              aria-label={copy.sparringLink}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
+            >
+              🥊
+            </Link>
+            <Link
               href="/history"
               aria-label={copy.historyLink}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
