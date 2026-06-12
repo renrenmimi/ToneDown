@@ -38,25 +38,30 @@ describe('budget meter', () => {
     expect(getSnapshot('live-transcribe', DAY1_NOON).requestsUsed).toBe(2)
   })
 
-  it('observe-only mode allows even when a bucket would be exhausted', () => {
+  it('enforcing mode blocks an exhausted token bucket', () => {
     record('gym', DAILY_TOKEN_BUDGETS.gym, {}, DAY1_NOON)
     const decision = precheck('gym', 1_000, DAY1_NOON)
-    expect(decision.allowed).toBe(true)
-    // ...but the would-be reason is reported for observe-mode telemetry.
+    expect(decision.allowed).toBe(false)
     expect(decision.reason).toBe('tokens')
+    // other buckets are unaffected
+    expect(precheck('debrief', 100, DAY1_NOON).allowed).toBe(true)
   })
 
   it('reports the request-cap reason when requests run out first', () => {
     for (let i = 0; i < DAILY_REQUEST_CAPS.debrief; i += 1) {
       record('debrief', 10, {}, DAY1_NOON)
     }
-    expect(precheck('debrief', 10, DAY1_NOON).reason).toBe('requests')
+    const decision = precheck('debrief', 10, DAY1_NOON)
+    expect(decision.reason).toBe('requests')
+    expect(decision.allowed).toBe(false)
   })
 
   it('suspend blocks all features for the retry window', () => {
     suspend(60, DAY1_NOON)
-    expect(precheck('live-analyze', 10, DAY1_NOON + 59_000).reason).toBe('suspended')
-    expect(precheck('live-analyze', 10, DAY1_NOON + 61_000).reason).toBe('ok')
+    const blocked = precheck('live-analyze', 10, DAY1_NOON + 59_000)
+    expect(blocked.reason).toBe('suspended')
+    expect(blocked.allowed).toBe(false)
+    expect(precheck('live-analyze', 10, DAY1_NOON + 61_000).allowed).toBe(true)
   })
 
   it('persists across reloads within the same day', () => {

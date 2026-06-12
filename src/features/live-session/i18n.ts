@@ -92,7 +92,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     engineGroq: 'Groq 语音识别',
     engineBrowser: '浏览器识别',
     sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
-    rulesMode: 'LLM 离线 · 规则模式',
+    rulesMode: 'AI 在休息 · 规则模式',
     toneSuggestion: 'AI 语气建议',
     toneSuggestionHint: '这句有点冲哦？下方会自动递上一个更温和的说法。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
@@ -188,7 +188,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     engineGroq: 'Groq Whisper',
     engineBrowser: 'Browser STT',
     sttUnavailable: 'Speech transcription is temporarily unavailable; scoring on volume only.',
-    rulesMode: 'LLM offline · rules mode',
+    rulesMode: 'AI resting · rules mode',
     toneSuggestion: 'AI Tone Suggestions',
     toneSuggestionHint:
       'That one came in a little hot? A calmer take appears down here automatically.',
