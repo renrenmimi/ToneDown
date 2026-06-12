@@ -1,0 +1,17 @@
+{
+  "name": "ToneDown 情侣语气检测助手",
+  "short_name": "ToneDown",
+  "description": "用浏览器原生能力做情侣沟通语气检测。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
