@@ -15,6 +15,7 @@ import {
 import { fusionSignal, sessionStore, volumeSignal } from './machine/sessionStore'
 import { SessionServices } from './services/SessionServices'
 import { useRecapPersistence } from '@/features/recap/useRecapPersistence'
+import { RecapView } from '@/features/recap/RecapView'
 import { isAudioAnalyserSupported } from './services/useAudioAnalyser'
 import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
@@ -230,6 +231,10 @@ function LiveSessionPage() {
           </div>
         )}
 
+        {phase === 'recap' ? (
+          <RecapView />
+        ) : (
+        <>
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <div className="mb-3 text-center text-sm text-ink-muted">
             {isMonitoring ? `${copy.listeningTime}: ${formatDuration(elapsedSeconds)}` : ''}
@@ -359,6 +364,9 @@ function LiveSessionPage() {
           <p className="mt-3 text-xs text-ink-muted">{copy.toneSuggestionHint}</p>
         </section>
 
+
+        </>
+        )}
 
         <footer className="px-2 text-center text-xs text-ink-muted">{copy.disclaimer}</footer>
       </div>

@@ -129,13 +129,5 @@ export function SessionServices() {
     }, 1_000)
   }, [isActive])
 
-  // Recap UI ships in M2; until then the recap phase closes immediately so
-  // stopping returns to idle exactly as before.
-  useEffect(() => {
-    if (phase === 'recap') {
-      sessionStore.dispatch({ type: 'RECAP_CLOSED' })
-    }
-  }, [phase])
-
   return null
 }
