@@ -3,8 +3,10 @@ import { CalmReminder } from './components/CalmReminder'
 import { ToneSuggestion } from './components/ToneSuggestion'
 import { useAudioAnalyser } from './hooks/useAudioAnalyser'
 import { useEmotionDetector } from './hooks/useEmotionDetector'
+import { useGroqTranscriber } from './hooks/useGroqTranscriber'
 import { useSpeechRate } from './hooks/useSpeechRate'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
+import { useTranscriptStream } from './hooks/useTranscriptStream'
 import type {
   AppLanguage,
   EmotionHistoryEntry,
@@ -25,6 +27,9 @@ const I18N: Record<
     listeningTime: string
     dashboard: string
     transcript: string
+    engineGroq: string
+    engineBrowser: string
+    sttUnavailable: string
     toneSuggestion: string
     toneSuggestionHint: string
     toneSuggestionEmpty: string
@@ -63,6 +68,9 @@ const I18N: Record<
     toneSuggestionHint: '检测到高危措辞时，下方会自动弹出替代表达卡片。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
     toneSuggestionDetected: '检测到的关键词',
+    engineGroq: 'Groq 语音识别',
+    engineBrowser: '浏览器识别',
+    sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
     timeline: '情绪变化时间线（最近 5 分钟）',
     timelineEmpty: '开始说话后，这里会出现情绪变化曲线。',
     notSupported: '请使用 Chrome 或 Edge 浏览器以获得最佳体验',
@@ -106,6 +114,9 @@ const I18N: Record<
     toneSuggestionHint: 'When high-risk phrases are detected, a replacement card appears automatically.',
     toneSuggestionEmpty: 'No high-risk keyword detected at the moment.',
     toneSuggestionDetected: 'Detected keywords',
+    engineGroq: 'Groq Whisper',
+    engineBrowser: 'Browser STT',
+    sttUnavailable: 'Speech transcription is temporarily unavailable; scoring on volume only.',
     timeline: 'Emotion Timeline (Last 5 Minutes)',
     timelineEmpty: 'The emotion curve will appear once speech is detected.',
     notSupported: 'Please use Chrome or Edge for the best experience',
@@ -290,26 +301,55 @@ function App() {
   const [isMonitoring, setIsMonitoring] = useState(false)
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null)
   const [nowTick, setNowTick] = useState(() => Date.now())
+  const [language, setLanguage] = useState<AppLanguage>('zh-CN')
 
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
 
-  const audio = useAudioAnalyser()
-  const speech = useSpeechRecognition()
-
-  const language = speech.language
   const copy = I18N[language]
 
-  const { wordsPerMinute, speedLevel } = useSpeechRate(speech.transcript, language)
+  const audio = useAudioAnalyser()
+  const stream = useTranscriptStream()
+  const speech = useSpeechRecognition({
+    language,
+    onFinalEntries: stream.addFinal,
+    onInterim: stream.setInterim,
+  })
+  const transcriber = useGroqTranscriber({
+    mediaStream: audio.mediaStream,
+    volume: audio.volume,
+    isActive: isMonitoring,
+    language,
+    onFinalEntries: stream.addFinal,
+  })
+
+  const { wordsPerMinute, speedLevel } = useSpeechRate(stream.entries, language)
   const emotion = useEmotionDetector({
     volume: audio.volume,
     speedLevel,
-    transcript: speech.transcript,
+    transcript: stream.entries,
     isActive: isMonitoring,
   })
   const resetEmotion = emotion.reset
 
-  const isBrowserSupported = audio.isSupported && speech.isSupported
+  // Groq STT only needs mic + MediaRecorder; Web Speech is an optional fallback.
+  const isBrowserSupported = audio.isSupported
+  const sttUnavailable =
+    isMonitoring && transcriber.engine === 'browser' && !speech.isSupported
   const trend = getTrend(emotion.history)
+
+  // When the Groq pipeline degrades, run the Web Speech fallback; stop it
+  // again once a recovery probe brings the Groq engine back.
+  const speechStart = speech.start
+  const speechStop = speech.stop
+  useEffect(() => {
+    if (!isMonitoring || transcriber.engine !== 'browser' || !speech.isSupported) {
+      return
+    }
+    speechStart()
+    return () => {
+      speechStop()
+    }
+  }, [isMonitoring, speech.isSupported, speechStart, speechStop, transcriber.engine])
 
   const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'
   const trendLabel = copy.trend[trend]
@@ -328,10 +368,9 @@ function App() {
 
   const toggleMonitoring = useCallback(async () => {
     if (isMonitoring) {
-      audio.stopListening()
-      speech.stop()
       setIsMonitoring(false)
       setSessionStartedAt(null)
+      audio.stopListening()
       return
     }
 
@@ -341,22 +380,19 @@ function App() {
 
     audio.clearError()
     speech.clearError()
-    speech.clearTranscript()
+    stream.clear()
     resetEmotion()
 
     const audioReady = await audio.startListening()
-    const speechReady = speech.start()
-
-    if (!audioReady || !speechReady) {
+    if (!audioReady) {
       audio.stopListening()
-      speech.stop()
       setIsMonitoring(false)
       return
     }
 
     setSessionStartedAt(Date.now())
     setIsMonitoring(true)
-  }, [audio, isBrowserSupported, isMonitoring, resetEmotion, speech, setIsMonitoring, setSessionStartedAt])
+  }, [audio, isBrowserSupported, isMonitoring, resetEmotion, speech, stream])
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -374,17 +410,17 @@ function App() {
     }
 
     transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight
-  }, [speech.interimTranscript, speech.transcript])
+  }, [stream.interim, stream.entries])
 
   const transcriptWithEmotion = useMemo(() => {
-    return speech.transcript.map((entry) => {
+    return stream.entries.map((entry) => {
       const level = getEmotionAtTimestamp(entry.timestamp, emotion.history, emotion.emotionLevel)
       return {
         ...entry,
         emotionLevel: level,
       }
     })
-  }, [emotion.emotionLevel, emotion.history, speech.transcript])
+  }, [emotion.emotionLevel, emotion.history, stream.entries])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -403,7 +439,7 @@ function App() {
                     ? 'bg-emerald-500 text-slate-950'
                     : 'text-slate-300 hover:text-white'
                 }`}
-                onClick={() => speech.setLanguage('zh-CN')}
+                onClick={() => setLanguage('zh-CN')}
               >
                 中
               </button>
@@ -414,7 +450,7 @@ function App() {
                     ? 'bg-emerald-500 text-slate-950'
                     : 'text-slate-300 hover:text-white'
                 }`}
-                onClick={() => speech.setLanguage('en-US')}
+                onClick={() => setLanguage('en-US')}
               >
                 EN
               </button>
@@ -432,6 +468,12 @@ function App() {
         {permissionDenied && (
           <div className="mb-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">
             {copy.permissionDenied}
+          </div>
+        )}
+
+        {sttUnavailable && (
+          <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+            {copy.sttUnavailable}
           </div>
         )}
 
@@ -507,13 +549,26 @@ function App() {
         </section>
 
         <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
-          <p className="mb-3 text-sm font-medium text-slate-300">{copy.transcript}</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-300">{copy.transcript}</p>
+            {isMonitoring && (
+              <span
+                className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                  transcriber.engine === 'groq'
+                    ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
+                    : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+                }`}
+              >
+                {transcriber.engine === 'groq' ? copy.engineGroq : copy.engineBrowser}
+              </span>
+            )}
+          </div>
 
           <div
             ref={transcriptContainerRef}
             className="max-h-56 min-h-40 overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950/60 p-3"
           >
-            {transcriptWithEmotion.length === 0 && !speech.interimTranscript && (
+            {transcriptWithEmotion.length === 0 && !stream.interim && (
               <p className="text-sm text-slate-500">{copy.emptyTranscript}</p>
             )}
 
@@ -522,11 +577,11 @@ function App() {
                 <TranscriptItem key={entry.timestamp} entry={entry} />
               ))}
 
-              {speech.interimTranscript && (
+              {stream.interim && (
                 <div className="flex items-start gap-2 text-sm italic text-slate-400">
                   <span className="mt-1 block h-2 w-2 rounded-full bg-slate-500" />
                   <p>
-                    {copy.interim}: {speech.interimTranscript}
+                    {copy.interim}: {stream.interim}
                   </p>
                 </div>
               )}

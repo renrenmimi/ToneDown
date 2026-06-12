@@ -17,6 +17,8 @@ interface UseAudioAnalyserResult {
   isListening: boolean
   isSupported: boolean
   error: string | null
+  /** The shared mic stream, so other consumers (MediaRecorder) avoid a second capture. */
+  mediaStream: MediaStream | null
   startListening: () => Promise<boolean>
   stopListening: () => void
   clearError: () => void
@@ -27,6 +29,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
   const [volumeHistory, setVolumeHistory] = useState<number[]>([])
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -66,6 +69,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
       streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
+    setMediaStream(null)
 
     if (audioContextRef.current) {
       void audioContextRef.current.close().catch(() => undefined)
@@ -113,6 +117,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
       analyserRef.current = analyser
       sourceRef.current = source
       streamRef.current = stream
+      setMediaStream(stream)
 
       const samples = new Uint8Array(analyser.fftSize)
 
@@ -174,6 +179,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
     isListening,
     isSupported,
     error,
+    mediaStream,
     startListening,
     stopListening,
     clearError,
