@@ -1,55 +1,82 @@
 # ToneDown
 
-A bilingual (中文 / English) PWA that listens to a live conversation and helps de-escalate it: real-time tone scoring, calm-down reminders, and constructive rephrasing suggestions.
+**Hear yourself the way they do.** ToneDown is a bilingual (EN/中文) live tone coach for heated conversations: it listens with you, fuses acoustic and semantic signals into a tone score every two seconds, flags the sentences that escalate things, hands you calmer rewrites in the moment — and turns the whole session into a debrief you can practice against.
+
+**Live:** https://tone-down.vercel.app · **30-second tour (no mic needed):** https://tone-down.vercel.app/demo
+
+| Surface | What it does |
+|---|---|
+| `/app` | Live session: three-ring gauge, session ribbon, AI rewrites, 4-7-8 breathing intervention |
+| `/demo` | The full loop replayed from a script — zero mic, zero network, zero tokens |
+| `/spar` | Six LLM personas to de-escalate; the mood meter is deterministic game state |
+| `/gym` | A daily "say it calmer" drill, judged 0–100; streaks and achievements |
+| `/history` | Local-only history: calm calendar, trend, JSON export, hold-to-erase |
 
 ## Architecture
 
-- **Client** (Vite + React 19 + TS): captures mic audio, fuses three signals into a 0–100 tension score every 2s — amplitude (100ms RMS), speech rate (10s window), and semantic tone from an LLM. Falls back to a local keyword lexicon when offline.
-- **Serverless proxy** (`api/`, Vercel functions): holds the Groq API key server-side.
-  - `POST /api/transcribe` — audio chunk → Groq Whisper (`whisper-large-v3-turbo`) → `{ transcript, language }`
-  - `POST /api/analyze` — transcript window → Groq chat (`llama-3.3-70b-versatile`) → `{ tone, intensity, rationale }`
-  - `POST /api/rewrite` — hostile utterance + context → constructive rephrasing in the same language
-- **STT**: MediaRecorder segments (~4s) → `/api/transcribe`; automatic fallback to the browser's Web Speech API when the proxy is unreachable (visible engine indicator).
-
-## Setup
-
-```bash
-npm install
-cp .env.example .env   # then paste your Groq API key into .env
+```
+┌─────────────────────────── Browser ────────────────────────────┐
+│  mic ─ AnalyserNode (100ms RMS) ──► signal bus ─┐               │
+│  mic ─ MediaRecorder 4s segments ─► /transcribe ┤               │
+│                                                 ▼               │
+│   session machine (pure reducer: idle→calibrating→listening    │
+│      ⇄escalated→intervention→recap; engines orthogonal)        │
+│                  ▲                    │ effects-as-data         │
+│   2s fusion ticker (volume+rate+LLM, │ (acquireMic, persist,   │
+│   20s freshness decay, rules-exact   ▼  requestDebrief)        │
+│   degraded mode)              IndexedDB (Dexie, local-only)    │
+└──────────────┬─────────────────────────────────────────────────┘
+               │  unified LLM client: budget meter → circuit
+               │  breaker → timeout → schema guard → bookkeeping
+┌──────────────▼─────────────── Vercel functions ────────────────┐
+│  /transcribe /analyze /rewrite /debrief /sparring /gym-grade   │
+│  key custody · per-IP rate limits · zod-validated LLM output   │
+│  with one corrective retry · content-free logs                 │
+└──────────────┬─────────────────────────────────────────────────┘
+               ▼
+        Groq free tier: whisper-large-v3-turbo · llama-3.3-70b
 ```
 
-`GROQ_API_KEY` lives only in the gitignored `.env` locally and in the Vercel project's environment variables in production. It must never appear in client code or the repo.
+**The fallback chain is the product:** Groq Whisper → Web Speech → volume-only; LLM semantics → keyword rules; every endpoint behind a circuit breaker (3 failures → open, half-open probes, 30s→5min backoff). Fully offline, the entire scoring loop still runs in rules mode. Quota exhaustion is a designed state with honest UI ("AI resting · rules mode"), not an error page.
+
+## Engineering highlights
+
+- **Hand-rolled typed state machine** (~150 lines, no XState): all timing compares against `event.at` from a 1s TICK heartbeat — never `Date.now()` in the reducer — which is exactly what makes the scripted `/demo` and 100+ deterministic transition tests possible. Engine status is orthogonal *context*, not phases. Effects are data the reducer returns; services execute them.
+- **Budget engineering against a hard ceiling** (Groq free tier: 100K tokens/day): client-side daily buckets per feature (82K allocated, 18% headroom), conservative estimation charging output at `max_completion_tokens`, adaptive analyze cadence (every segment while heated, coasting when calm), grade caching so identical Gym answers never spend twice, and a zero-token demo mode as the first thing visitors click.
+- **Production incident as a design rule — the ESM extension bug:** every deployed API call once died at import time with `ERR_MODULE_NOT_FOUND`; Vercel's Node ESM runtime requires explicit `.js` extensions on relative imports, while the tsx-based dev server happily resolved extensionless ones. The fix wasn't just adding extensions — `tsconfig.api.json` switched to `moduleResolution: nodenext` so **tsc itself now rejects the bug class**, and zod schemas deliberately stay server-only rather than sharing runtime modules across the two resolver worlds. The drift between client guards and server schemas is pinned by type-level `satisfies` plus shared-fixture tests.
+- **One call, two jobs in sparring:** `/api/sparring` returns the persona's reply *and* the grade of the user's last message — halving cost — while the win condition lives in deterministic client-side game state (mood meter), so victories can't be sweet-talked out of the model. Streaming was evaluated and rejected with measurements: sub-second full completions, and streamed JSON can't be schema-validated before render.
+- **Crimson is a token-level rule:** `--tone-hostile` is the only red in the system, so hostility's color can never be accidentally decorative. The aurora background costs zero JS per frame (transform-only keyframes + `@property` color crossfades, one `dataset` write per band change).
+- **Privacy as architecture:** audio is analyzed in flight and discarded; history exists only in IndexedDB (Dexie rides a lazy chunk, never the live path); export is one click, deletion is hold-to-confirm and final; server logs are route/status/duration only.
 
 ## Local development
 
 ```bash
-npm run dev:full   # Vite on :5173 + local API runtime on :3001 (Vite proxies /api there)
+npm install
+cp .env.example .env        # paste your Groq API key (gitignored)
+npm run dev:full            # Vite :5173 + local API adapter :3001 (no vercel login needed)
 ```
 
-- `npm run dev:api` — just the API routes (a small Node adapter, `scripts/dev-api.mjs`, that mimics Vercel's runtime so no `vercel login` is needed).
-- `npm run dev` — just the client; `/api/*` will fail, which exercises the rules-only degraded mode.
-- `vercel dev` also works (closest to production) once you've run `vercel login` and linked the project.
+`npm run dev` alone runs the client with `/api` failing — a useful drill: the app must keep working in rules mode. `vercel dev` also works once linked. See `TESTING.md` for per-route curls, bilingual manual scripts, and degradation drills.
 
-## Abuse protection
+## Testing & CI
 
-All routes reject non-POST requests, cap payload size (1.5MB audio / 16KB JSON), and rate-limit per IP with a 60s sliding window (30/min transcribe & analyze, 10/min rewrite). The limiter is in-memory per warm serverless instance — adequate for a public demo, not a hard guarantee across instances.
+- **Unit (Vitest):** fusion math (including bit-compatibility of the degraded mode with the original rules formula), the full state-machine transition table, budget metering, breaker behavior, and client-guard ↔ server-zod drift fixtures for every LLM schema.
+- **E2E (Playwright):** the demo-mode smoke walks suggestion card → breathing morph → recap against the production build, and **any request to `/api` fails the test** — proving zero-network by construction.
+- **CI (GitHub Actions):** typecheck, lint, unit tests, build, the e2e smoke, and a full-history gitleaks scan on every push.
 
-## Scoring fusion
+## Models & limits
 
-Every 2s the score is computed as a freshness-weighted blend: a fresh LLM result
-(`freshness = max(0, 1 - age/20s)`) contributes up to 60% via
-`intensity × toneMultiplier` (aggressive 1.0 → positive 0), with the keyword
-lexicon's weight halved while the semantic signal is live. An
-aggressive/intensity ≥ 70 result also floors the score at 72 so quiet hostility
-can still trigger the calm reminder. With no fresh LLM result the formula is
-bit-identical to the original rules-only scoring.
+| Route | Model | Params | Limit |
+|---|---|---|---|
+| /transcribe | whisper-large-v3-turbo | verbose_json, temp 0 | 30/min/IP |
+| /analyze | llama-3.3-70b-versatile | temp 0.2 · 150 tok | 30/min/IP |
+| /rewrite (+grounding) | llama-3.3-70b-versatile | temp 0.7 · 200/60 tok | 10/min/IP |
+| /debrief | llama-3.3-70b-versatile | temp 0.4 · 500 tok | 4/min/IP |
+| /sparring | llama-3.3-70b-versatile | temp 0.8 · 220 tok | 12/min/IP |
+| /gym-grade | llama-3.3-70b-versatile | temp 0.3 · 160 tok | 6/min/IP |
 
-## Robustness
+All JSON-mode with strict validation and one corrective retry at temperature 0; failures degrade to local rules, never to a blank screen. Rate limiting is in-memory per warm instance — documented, deliberate scope for a public demo.
 
-- Every Groq call has an AbortController timeout (server side and client side); the UI never blocks on the LLM.
-- LLM output is schema-validated server-side; malformed JSON gets one corrective retry at temperature 0, then the client falls back to local rules.
-- Each endpoint group sits behind a client circuit breaker: 3 consecutive failures open it (STT switches to Web Speech, scoring switches to rules, rewrites switch to the static map), then half-open probes with 30s→5min exponential backoff close it again on success.
-- Whisper silence hallucinations are mitigated by a volume-based silence gate (quiet segments are never uploaded) plus a transcript blocklist.
-- With the network down the app still works end-to-end in rules-only mode (keyword lexicon + amplitude + speech rate, static suggestions).
+---
 
-See `TESTING.md` for manual test scripts, degradation drills, and per-route curl checks.
+*ToneDown is a communication aid, not counseling.*
