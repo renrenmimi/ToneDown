@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { analyze } from '../lib/apiClient'
+import { CircuitBreaker } from '../lib/circuitBreaker'
+import { recordLatency } from '../lib/latencyLog'
 import type { AppLanguage, LlmToneResult, TranscriptEntry } from '../types/app'
 
 // Runs on its own cadence (each newly finalized transcript entry), decoupled
@@ -8,9 +10,6 @@ const DEBOUNCE_MS = 600
 const MIN_TEXT_CHARS = 3
 const CONTEXT_WINDOW_MS = 45_000
 const MAX_CONTEXT_ENTRIES = 6
-const MAX_CONSECUTIVE_FAILURES = 3
-// While degraded, one probe request per interval checks whether the LLM is back.
-const RETRY_PROBE_INTERVAL_MS = 30_000
 
 interface UseToneAnalysisArgs {
   entries: TranscriptEntry[]
@@ -35,8 +34,8 @@ export function useToneAnalysis({
   const languageRef = useRef(language)
   const lastSeenTimestampRef = useRef(0)
   const inFlightRef = useRef(false)
-  const failuresRef = useRef(0)
-  const lastAttemptAtRef = useRef(0)
+  // The breaker survives stop/start: a flapping endpoint stays backed off.
+  const breakerRef = useRef(new CircuitBreaker())
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export function useToneAnalysis({
   useEffect(() => {
     if (!isActive) {
       lastSeenTimestampRef.current = 0
-      failuresRef.current = 0
       return
     }
 
@@ -69,9 +67,11 @@ export function useToneAnalysis({
         return
       }
 
+      const breaker = breakerRef.current
       const now = Date.now()
-      const degraded = failuresRef.current >= MAX_CONSECUTIVE_FAILURES
-      if (degraded && now - lastAttemptAtRef.current < RETRY_PROBE_INTERVAL_MS) {
+      // While open, entries keep arriving but only the post-backoff one
+      // becomes the half-open probe.
+      if (!breaker.canAttempt(now)) {
         return
       }
 
@@ -88,19 +88,18 @@ export function useToneAnalysis({
         .map((entry) => entry.text)
 
       inFlightRef.current = true
-      lastAttemptAtRef.current = now
+      const startedAt = performance.now()
 
       void analyze({ text, context, language: languageRef.current })
         .then((result) => {
-          failuresRef.current = 0
+          recordLatency('analyze', performance.now() - startedAt)
+          breaker.recordSuccess()
           setAvailable(true)
           setLatest({ ...result, at: Date.now() })
         })
         .catch(() => {
-          failuresRef.current += 1
-          if (failuresRef.current >= MAX_CONSECUTIVE_FAILURES) {
-            setAvailable(false)
-          }
+          breaker.recordFailure()
+          setAvailable(breaker.state === 'closed')
         })
         .finally(() => {
           inFlightRef.current = false

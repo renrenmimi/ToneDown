@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { transcribe, toLanguageHint } from '../lib/apiClient'
+import { CircuitBreaker } from '../lib/circuitBreaker'
+import { recordLatency } from '../lib/latencyLog'
 import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
 
 // Segment length tradeoff: Whisper accuracy degrades (and hallucination odds
@@ -7,8 +9,7 @@ import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
 // 4s ≈ 15 requests/min, comfortably inside the 30/min server rate limit.
 const SEGMENT_MS = 4_000
 const VOLUME_SAMPLE_MS = 100
-const MAX_CONSECUTIVE_FAILURES = 3
-const PROBE_INTERVAL_MS = 60_000
+const MIN_PROBE_DELAY_MS = 1_000
 
 // Silence gate: segments quieter than this are dropped without uploading.
 // Saves Groq quota and is the primary defense against Whisper hallucinating
@@ -94,6 +95,9 @@ export function useGroqTranscriber({
   const [degraded, setDegraded] = useState(false)
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null)
 
+  // Survives stop/start so a flapping /api/transcribe stays backed off
+  // (open -> half-open probe, backoff doubling 30s -> 5min).
+  const breakerRef = useRef(new CircuitBreaker())
   const mimeType = useMemo(() => pickMimeType(), [])
 
   // No MediaRecorder support (Safari < 14, etc.) means permanent fallback;
@@ -120,10 +124,10 @@ export function useGroqTranscriber({
     const session = {
       active: true,
       degraded: false,
-      failures: 0,
       recorders: new Set<MediaRecorder>(),
       timers: new Set<ReturnType<typeof setTimeout>>(),
     }
+    const breaker = breakerRef.current
 
     const setTimer = (fn: () => void, ms: number) => {
       const id = setTimeout(() => {
@@ -145,6 +149,10 @@ export function useGroqTranscriber({
       session.recorders.clear()
     }
 
+    const scheduleProbe = () => {
+      setTimer(() => recordSegment(true), Math.max(breaker.msUntilProbe(), MIN_PROBE_DELAY_MS))
+    }
+
     const enterDegradedMode = () => {
       if (session.degraded || !session.active) {
         return
@@ -152,7 +160,7 @@ export function useGroqTranscriber({
       session.degraded = true
       setDegraded(true)
       stopAllRecorders()
-      setTimer(() => recordSegment(true), PROBE_INTERVAL_MS)
+      scheduleProbe()
     }
 
     const recoverFromProbe = () => {
@@ -160,7 +168,6 @@ export function useGroqTranscriber({
         return
       }
       session.degraded = false
-      session.failures = 0
       setDegraded(false)
       recordSegment(false)
     }
@@ -190,8 +197,10 @@ export function useGroqTranscriber({
         if (!session.active) {
           return
         }
-        setLastLatencyMs(Math.round(performance.now() - uploadStartedAt))
-        session.failures = 0
+        const elapsed = performance.now() - uploadStartedAt
+        setLastLatencyMs(Math.round(elapsed))
+        recordLatency('transcribe', elapsed)
+        breaker.recordSuccess()
 
         if (isProbe) {
           recoverFromProbe()
@@ -206,12 +215,12 @@ export function useGroqTranscriber({
         if (!session.active) {
           return
         }
+        breaker.recordFailure()
         if (isProbe) {
-          setTimer(() => recordSegment(true), PROBE_INTERVAL_MS)
+          scheduleProbe()
           return
         }
-        session.failures += 1
-        if (session.failures >= MAX_CONSECUTIVE_FAILURES) {
+        if (breaker.state !== 'closed') {
           enterDegradedMode()
         }
       }

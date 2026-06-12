@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { rewriteUtterance } from '../lib/apiClient'
+import { CircuitBreaker } from '../lib/circuitBreaker'
+import { recordLatency } from '../lib/latencyLog'
 import type { AppLanguage, TranscriptEntry } from '../types/app'
 
 // Sustained hostility mirrors CalmReminder's trigger (score >= 70 held 5s);
@@ -46,6 +48,7 @@ export function useRewriteSuggestion({
   const lastTriggeredAtRef = useRef(0)
   const lastUtteranceRef = useRef('')
   const inFlightRef = useRef(false)
+  const breakerRef = useRef(new CircuitBreaker())
 
   useEffect(() => {
     scoreRef.current = score
@@ -62,6 +65,11 @@ export function useRewriteSuggestion({
     const requestRewrite = () => {
       const now = Date.now()
       if (inFlightRef.current || now - lastTriggeredAtRef.current < COOLDOWN_MS) {
+        return
+      }
+      // Open breaker: skip the call entirely; ToneSuggestion's keyword map
+      // is the fallback, so hostile moments still get a (static) suggestion.
+      if (!breakerRef.current.canAttempt(now)) {
         return
       }
 
@@ -86,13 +94,17 @@ export function useRewriteSuggestion({
       inFlightRef.current = true
       lastTriggeredAtRef.current = now
       lastUtteranceRef.current = utterance
+      const startedAt = performance.now()
 
       void rewriteUtterance({ utterance, context, language: languageRef.current })
         .then((result) => {
+          recordLatency('rewrite', performance.now() - startedAt)
+          breakerRef.current.recordSuccess()
           setSuggestion({ original: utterance, rewrite: result.rewrite })
         })
         .catch(() => {
           // Leave suggestion null/stale: ToneSuggestion's keyword map takes over.
+          breakerRef.current.recordFailure()
         })
         .finally(() => {
           inFlightRef.current = false

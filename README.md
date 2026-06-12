@@ -34,10 +34,22 @@ npm run dev:full   # Vite on :5173 + local API runtime on :3001 (Vite proxies /a
 
 All routes reject non-POST requests, cap payload size (1.5MB audio / 16KB JSON), and rate-limit per IP with a 60s sliding window (30/min transcribe & analyze, 10/min rewrite). The limiter is in-memory per warm serverless instance — adequate for a public demo, not a hard guarantee across instances.
 
+## Scoring fusion
+
+Every 2s the score is computed as a freshness-weighted blend: a fresh LLM result
+(`freshness = max(0, 1 - age/20s)`) contributes up to 60% via
+`intensity × toneMultiplier` (aggressive 1.0 → positive 0), with the keyword
+lexicon's weight halved while the semantic signal is live. An
+aggressive/intensity ≥ 70 result also floors the score at 72 so quiet hostility
+can still trigger the calm reminder. With no fresh LLM result the formula is
+bit-identical to the original rules-only scoring.
+
 ## Robustness
 
-- Every Groq call has an AbortController timeout; the UI never blocks on the LLM.
-- LLM output is schema-validated; malformed JSON gets one corrective retry, then the client falls back to local rules.
+- Every Groq call has an AbortController timeout (server side and client side); the UI never blocks on the LLM.
+- LLM output is schema-validated server-side; malformed JSON gets one corrective retry at temperature 0, then the client falls back to local rules.
+- Each endpoint group sits behind a client circuit breaker: 3 consecutive failures open it (STT switches to Web Speech, scoring switches to rules, rewrites switch to the static map), then half-open probes with 30s→5min exponential backoff close it again on success.
+- Whisper silence hallucinations are mitigated by a volume-based silence gate (quiet segments are never uploaded) plus a transcript blocklist.
 - With the network down the app still works end-to-end in rules-only mode (keyword lexicon + amplitude + speech rate, static suggestions).
 
-See `TESTING.md` for manual test scripts and per-route curl checks.
+See `TESTING.md` for manual test scripts, degradation drills, and per-route curl checks.
