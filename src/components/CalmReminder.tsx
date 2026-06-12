@@ -1,33 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppLanguage } from '../types/app'
+import { useLiveSessionT } from '@/features/live-session/i18n'
 
 interface CalmReminderProps {
   score: number
   isActive: boolean
-  language: AppLanguage
-}
-
-const COPY: Record<
-  AppLanguage,
-  {
-    title: string
-    description: string
-    button: string
-    countdown: string
-  }
-> = {
-  'zh-CN': {
-    title: '深呼吸 🌊',
-    description: '你的语气正在升高，让我们暂停 30 秒',
-    button: '我已经冷静了',
-    countdown: '剩余',
-  },
-  'en-US': {
-    title: 'Take a deep breath 🌊',
-    description: 'Your tone is rising. Let us pause for 30 seconds.',
-    button: "I'm calm now",
-    countdown: 'Left',
-  },
 }
 
 const TRIGGER_SCORE = 70
@@ -35,7 +11,8 @@ const TRIGGER_DURATION_MS = 5_000
 const REMINDER_DURATION_SECONDS = 30
 const COOLDOWN_MS = 60_000
 
-export function CalmReminder({ score, isActive, language }: CalmReminderProps) {
+export function CalmReminder({ score, isActive }: CalmReminderProps) {
+  const copy = useLiveSessionT().calmReminder
   const [isVisible, setIsVisible] = useState(false)
   const [countdown, setCountdown] = useState(REMINDER_DURATION_SECONDS)
 
@@ -144,8 +121,6 @@ export function CalmReminder({ score, isActive, language }: CalmReminderProps) {
   if (!isVisible || !isActive) {
     return null
   }
-
-  const copy = COPY[language]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6 backdrop-blur-sm">

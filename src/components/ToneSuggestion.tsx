@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SUGGESTION_MAP } from '@/features/live-session/lib/lexicon'
-import type { AppLanguage } from '../types/app'
+import { useLiveSessionT } from '@/features/live-session/i18n'
 
 interface LlmSuggestionInput {
   original: string
@@ -11,7 +11,6 @@ interface ToneSuggestionProps {
   triggerKeyword: string | null
   /** LLM rewrite from /api/rewrite; when present it takes precedence over the keyword map. */
   llmSuggestion?: LlmSuggestionInput | null
-  language: AppLanguage
 }
 
 interface ActiveSuggestion {
@@ -24,12 +23,7 @@ const DISPLAY_DURATION_MS = 8_000
 const AI_DISPLAY_DURATION_MS = 10_000
 const MAX_ORIGINAL_DISPLAY_CHARS = 60
 
-const COPY: Record<AppLanguage, { original: string; suggestion: string; aiBadge: string }> = {
-  'zh-CN': { original: '原话', suggestion: '建议', aiBadge: 'AI 建议' },
-  'en-US': { original: 'Original', suggestion: 'Suggestion', aiBadge: 'AI suggestion' },
-}
-
-export function ToneSuggestion({ triggerKeyword, llmSuggestion = null, language }: ToneSuggestionProps) {
+export function ToneSuggestion({ triggerKeyword, llmSuggestion = null }: ToneSuggestionProps) {
   const [activeItem, setActiveItem] = useState<ActiveSuggestion | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
@@ -112,7 +106,7 @@ export function ToneSuggestion({ triggerKeyword, llmSuggestion = null, language 
     }
   }, [])
 
-  const copy = COPY[language]
+  const copy = useLiveSessionT().suggestion
 
   const containerClassName = useMemo(() => {
     return [
