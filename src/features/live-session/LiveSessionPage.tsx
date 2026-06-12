@@ -14,6 +14,7 @@ import {
 } from './machine/selectors'
 import { fusionSignal, sessionStore, volumeSignal } from './machine/sessionStore'
 import { SessionServices } from './services/SessionServices'
+import { useRecapPersistence } from '@/features/recap/useRecapPersistence'
 import { isAudioAnalyserSupported } from './services/useAudioAnalyser'
 import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
@@ -82,6 +83,7 @@ function LiveSessionPage() {
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
 
   const copy = useLiveSessionT()
+  useRecapPersistence()
 
   // The session machine is the single source of truth; the UI reads slices.
   const phase = useSessionPhase()
