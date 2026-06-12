@@ -49,11 +49,13 @@ interface LiveSessionStrings {
     suggestion: string
     aiBadge: string
   }
-  calmReminder: {
+  breath: {
     title: string
-    description: string
-    button: string
-    countdown: string
+    inhale: string
+    hold: string
+    exhale: string
+    steady: string
+    fallback: string
   }
 }
 
@@ -116,11 +118,13 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: '建议',
       aiBadge: 'AI 建议',
     },
-    calmReminder: {
-      title: '深呼吸 🌊',
-      description: '你的语气正在升高，让我们暂停 30 秒',
-      button: '我已经冷静了',
-      countdown: '剩余',
+    breath: {
+      title: '我们一起深呼吸一次',
+      inhale: '吸气',
+      hold: '屏住',
+      exhale: '缓缓呼出',
+      steady: '我稳住了',
+      fallback: '一次呼吸之后，话会说得更好。',
     },
   },
   'en-US': {
@@ -182,11 +186,13 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: 'Suggestion',
       aiBadge: 'AI suggestion',
     },
-    calmReminder: {
-      title: 'Take a deep breath 🌊',
-      description: 'Your tone is rising. Let us pause for 30 seconds.',
-      button: "I'm calm now",
-      countdown: 'Left',
+    breath: {
+      title: "Let's take one together",
+      inhale: 'Breathe in',
+      hold: 'Hold',
+      exhale: 'Let it go',
+      steady: "I'm steady",
+      fallback: "You're one breath away from a better sentence.",
     },
   },
 })

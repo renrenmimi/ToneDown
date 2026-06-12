@@ -71,7 +71,8 @@ export const ESCALATE_SCORE = 70
 /** New in Phase 2: hysteresis so the phase doesn't flap at the threshold. */
 export const DEESCALATE_SCORE = 65
 export const ESCALATION_SUSTAIN_MS = 5_000
-export const INTERVENTION_DURATION_MS = 30_000
+/** Two full 4-7-8 breathing cycles (the M1 morph replaced the 30s modal). */
+export const INTERVENTION_DURATION_MS = 38_000
 export const INTERVENTION_COOLDOWN_MS = 60_000
 export const MAX_TRANSCRIPT_ENTRIES = 600
 export const MAX_HISTORY_POINTS = 300

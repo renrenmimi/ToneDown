@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalmReminder } from './components/CalmReminder'
 import { ToneSuggestion } from './components/ToneSuggestion'
 import { useLiveSessionT } from './i18n'
 import {
@@ -20,6 +19,7 @@ import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { useLocale } from '@/shared/i18n/localeContext'
+import { BreathingGuide } from './components/BreathingGuide'
 import { ToneGauge } from './components/ToneGauge'
 import { Aurora } from '@/shared/ui/Aurora'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
@@ -347,14 +347,18 @@ function LiveSessionPage() {
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <p className="mb-4 text-sm font-medium text-ink-secondary">{copy.dashboard}</p>
 
-          <ToneGauge
-            score={score}
-            level={emotionLevel}
-            rateValue={rateValue}
-            semanticValue={llmFresh}
-            trendIcon={trendIcon}
-            trendLabel={trendLabel}
-          />
+          {phase === 'intervention' ? (
+            <BreathingGuide />
+          ) : (
+            <ToneGauge
+              score={score}
+              level={emotionLevel}
+              rateValue={rateValue}
+              semanticValue={llmFresh}
+              trendIcon={trendIcon}
+              trendLabel={trendLabel}
+            />
+          )}
 
           <p className="mt-2 text-center text-sm text-ink-secondary">{copy.emotionState[emotionLevel]}</p>
 
@@ -466,7 +470,6 @@ function LiveSessionPage() {
         triggerKeyword={isMonitoring ? frame.latestHighRiskKeyword : null}
         llmSuggestion={rewrite.suggestion}
       />
-      <CalmReminder />
     </div>
   )
 }
