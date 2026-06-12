@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Redirect, Route, Switch } from 'wouter'
+import { ErrorBoundary } from './shared/ui/ErrorBoundary'
+import { OfflineBanner } from './shared/ui/OfflineBanner'
 
 // Each feature is a lazy route chunk.
 const LandingPage = lazy(() => import('./features/landing/LandingPage'))
@@ -15,18 +17,21 @@ function RouteFallback() {
 
 export function AppRoutes() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Switch>
+    <ErrorBoundary>
+      <OfflineBanner />
+      <Suspense fallback={<RouteFallback />}>
+        <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/app" component={LiveSessionPage} />
         <Route path="/history" component={HistoryPage} />
         <Route path="/spar" component={SparringPage} />
         <Route path="/gym" component={GymPage} />
         <Route path="/demo" component={DemoPage} />
-        <Route>
-          <Redirect to="/" />
-        </Route>
-      </Switch>
-    </Suspense>
+          <Route>
+            <Redirect to="/" />
+          </Route>
+        </Switch>
+      </Suspense>
+    </ErrorBoundary>
   )
 }

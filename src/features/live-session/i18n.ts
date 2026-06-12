@@ -57,6 +57,15 @@ interface LiveSessionStrings {
     suggestion: string
     aiBadge: string
   }
+  onboarding: {
+    ariaLabel: string
+    skip: string
+    next: string
+    done: string
+    one: { emoji: string; title: string; body: string }
+    two: { emoji: string; title: string; body: string }
+    three: { emoji: string; title: string; body: string }
+  }
   breath: {
     title: string
     inhale: string
@@ -134,6 +143,27 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: '建议',
       aiBadge: 'AI 建议',
     },
+    onboarding: {
+      ariaLabel: '新手引导',
+      skip: '跳过',
+      next: '下一步',
+      done: '明白了',
+      one: {
+        emoji: '👂',
+        title: '它倾听，但从不录音',
+        body: '声音只在分析的瞬间经过，随即丢弃。历史只存在这台设备的浏览器里。麦克风只会在你按下「开始检测」时才请求。',
+      },
+      two: {
+        emoji: '🎯',
+        title: '你的语气，实时打分',
+        body: '音量、语速和 AI 语义每 2 秒融合成一个分数。深红色只代表敌意——你会很少看到它，这是刻意的。',
+      },
+      three: {
+        emoji: '🌊',
+        title: '说急了的话，可以重来',
+        body: '带刺的句子会得到一个更温和的版本；持续升温时，仪表盘会变成一次 4-7-8 呼吸练习。',
+      },
+    },
     breath: {
       title: '我们一起深呼吸一次',
       inhale: '吸气',
@@ -209,6 +239,27 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       original: 'Original',
       suggestion: 'Suggestion',
       aiBadge: 'AI suggestion',
+    },
+    onboarding: {
+      ariaLabel: 'First-visit introduction',
+      skip: 'Skip',
+      next: 'Next',
+      done: 'Got it',
+      one: {
+        emoji: '👂',
+        title: 'It listens. It never records.',
+        body: 'Audio is scored in flight and discarded. Your history lives only in this browser. The mic is requested only when you press Start.',
+      },
+      two: {
+        emoji: '🎯',
+        title: 'Your tone, scored live',
+        body: 'Loudness, pace, and AI meaning fuse into one score every 2 seconds. Crimson means hostility — you will see it rarely, on purpose.',
+      },
+      three: {
+        emoji: '🌊',
+        title: 'Hot moments get a redo',
+        body: 'Spiky sentences get a calmer version; sustained heat morphs the gauge into one 4-7-8 breath.',
+      },
     },
     breath: {
       title: "Let's take one together",

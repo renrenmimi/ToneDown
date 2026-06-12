@@ -22,6 +22,8 @@ import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { useLocale } from '@/shared/i18n/localeContext'
 import { BreathingGuide } from './components/BreathingGuide'
+import { Onboarding } from './components/Onboarding'
+import { shouldShowOnboarding } from './lib/onboardingFlag'
 import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
 import { Link } from 'wouter'
@@ -80,6 +82,7 @@ const getEmotionAtTimestamp = (
 
 function LiveSessionPage() {
   const [nowTick, setNowTick] = useState(() => Date.now())
+  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding())
   const { locale: language, setLocale } = useLocale()
 
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
@@ -393,6 +396,7 @@ function LiveSessionPage() {
         <footer className="px-2 text-center text-xs text-ink-muted">{copy.disclaimer}</footer>
       </div>
 
+      {showOnboarding && <Onboarding onDone={() => setShowOnboarding(false)} />}
       <SessionRibbon />
       <SessionServices />
       <ToneSuggestion
