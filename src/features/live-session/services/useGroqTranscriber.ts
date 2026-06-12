@@ -5,8 +5,8 @@ import {
   filterTranscript,
   isSilentSegment,
   pickMimeType,
-} from '@/features/live-session/lib/sttFilters'
-import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
+} from '../lib/sttFilters'
+import type { AppLanguage, SttEngine, TranscriptEntry } from '@/types/app'
 
 // Segment length tradeoff: Whisper accuracy degrades (and hallucination odds
 // rise) below ~2-3s of audio, while longer segments lag the 2s scoring loop.

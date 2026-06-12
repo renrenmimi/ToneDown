@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getBreaker } from '@/shared/llm/breakers'
 import { analyzeEndpoint } from '@/shared/llm/endpoints'
-import type { AppLanguage, LlmToneResult, TranscriptEntry } from '../types/app'
+import type { AppLanguage, LlmToneResult, TranscriptEntry } from '@/types/app'
 
 // Runs on its own cadence (each newly finalized transcript entry), decoupled
 // from the 2s scoring loop, which only ever reads the latest result.

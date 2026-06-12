@@ -3,7 +3,7 @@ import { Redirect, Route, Switch } from 'wouter'
 
 // Each feature is a lazy route chunk. The landing page ships in M1; until
 // then both / and /app serve the live session so the live URL is unchanged.
-const LiveSessionPage = lazy(() => import('./App'))
+const LiveSessionPage = lazy(() => import('./features/live-session/LiveSessionPage'))
 
 function RouteFallback() {
   return <div className="min-h-screen bg-slate-950" aria-hidden />

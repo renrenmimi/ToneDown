@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CalmReminder } from './components/CalmReminder'
 import { ToneSuggestion } from './components/ToneSuggestion'
-import { useLiveSessionT } from './features/live-session/i18n'
+import { useLiveSessionT } from './i18n'
 import {
   useEngines,
   useInterim,
@@ -12,20 +12,20 @@ import {
   useSessionScore,
   useEmotionLevel,
   useTranscript,
-} from './features/live-session/machine/selectors'
-import { fusionSignal, sessionStore, volumeSignal } from './features/live-session/machine/sessionStore'
-import { SessionServices } from './features/live-session/services/SessionServices'
-import { isAudioAnalyserSupported } from './hooks/useAudioAnalyser'
-import { useRewriteSuggestion } from './hooks/useRewriteSuggestion'
-import { isSpeechRecognitionSupported } from './hooks/useSpeechRecognition'
-import { useSignalValue } from './shared/state/signalBus'
-import { useLocale } from './shared/i18n/localeContext'
+} from './machine/selectors'
+import { fusionSignal, sessionStore, volumeSignal } from './machine/sessionStore'
+import { SessionServices } from './services/SessionServices'
+import { isAudioAnalyserSupported } from './services/useAudioAnalyser'
+import { useRewriteSuggestion } from './services/useRewriteSuggestion'
+import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
+import { useSignalValue } from '@/shared/state/signalBus'
+import { useLocale } from '@/shared/i18n/localeContext'
 import type {
   AppLanguage,
   EmotionHistoryEntry,
   EmotionLevel,
   TranscriptEntry,
-} from './types/app'
+} from '@/types/app'
 
 const TIMELINE_WINDOW_MS = 5 * 60_000
 
@@ -177,7 +177,7 @@ function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) 
   )
 }
 
-function App() {
+function LiveSessionPage() {
   const [nowTick, setNowTick] = useState(() => Date.now())
   const { locale: language, setLocale } = useLocale()
 
@@ -523,4 +523,4 @@ function TranscriptItem({ entry }: TranscriptItemProps) {
   )
 }
 
-export default App
+export default LiveSessionPage

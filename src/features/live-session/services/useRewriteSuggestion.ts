@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { rewriteEndpoint } from '@/shared/llm/endpoints'
-import type { AppLanguage, TranscriptEntry } from '../types/app'
+import type { AppLanguage, TranscriptEntry } from '@/types/app'
 
 // Sustained hostility mirrors CalmReminder's trigger (score >= 70 held 5s);
 // a fresh high-risk keyword triggers immediately. Both share one cooldown.

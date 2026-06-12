@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useLiveSessionT } from '@/features/live-session/i18n'
-import { useSession, useSessionPhase } from '@/features/live-session/machine/selectors'
-import { sessionStore } from '@/features/live-session/machine/sessionStore'
-import { INTERVENTION_DURATION_MS } from '@/features/live-session/machine/sessionMachine'
+import { useLiveSessionT } from '../i18n'
+import { useSession, useSessionPhase } from '../machine/selectors'
+import { sessionStore } from '../machine/sessionStore'
+import { INTERVENTION_DURATION_MS } from '../machine/sessionMachine'
 
 const REMINDER_DURATION_SECONDS = INTERVENTION_DURATION_MS / 1_000
 

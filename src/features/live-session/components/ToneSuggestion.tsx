@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { SUGGESTION_MAP } from '@/features/live-session/lib/lexicon'
-import { useLiveSessionT } from '@/features/live-session/i18n'
+import { SUGGESTION_MAP } from '../lib/lexicon'
+import { useLiveSessionT } from '../i18n'
 
 interface LlmSuggestionInput {
   original: string

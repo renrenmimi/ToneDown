@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AppLanguage, TranscriptEntry } from '../types/app'
+import type { AppLanguage, TranscriptEntry } from '@/types/app'
 
 interface SpeechRecognitionAlternativeLike {
   transcript: string
