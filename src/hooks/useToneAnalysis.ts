@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { analyze } from '../lib/apiClient'
-import { CircuitBreaker } from '../lib/circuitBreaker'
-import { recordLatency } from '../lib/latencyLog'
+import { CircuitBreaker } from '@/shared/circuitBreaker'
+import { recordLatency } from '@/shared/latencyLog'
 import type { AppLanguage, LlmToneResult, TranscriptEntry } from '../types/app'
 
 // Runs on its own cadence (each newly finalized transcript entry), decoupled

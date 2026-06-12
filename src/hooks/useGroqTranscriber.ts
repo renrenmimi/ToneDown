@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { transcribe, toLanguageHint } from '../lib/apiClient'
-import { CircuitBreaker } from '../lib/circuitBreaker'
-import { recordLatency } from '../lib/latencyLog'
+import { CircuitBreaker } from '@/shared/circuitBreaker'
+import { recordLatency } from '@/shared/latencyLog'
 import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
 
 // Segment length tradeoff: Whisper accuracy degrades (and hallucination odds

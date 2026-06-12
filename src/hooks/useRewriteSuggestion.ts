@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { rewriteUtterance } from '../lib/apiClient'
-import { CircuitBreaker } from '../lib/circuitBreaker'
-import { recordLatency } from '../lib/latencyLog'
+import { CircuitBreaker } from '@/shared/circuitBreaker'
+import { recordLatency } from '@/shared/latencyLog'
 import type { AppLanguage, TranscriptEntry } from '../types/app'
 
 // Sustained hostility mirrors CalmReminder's trigger (score >= 70 held 5s);
