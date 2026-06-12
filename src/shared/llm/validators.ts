@@ -2,6 +2,7 @@ import type {
   AnalyzeResponse,
   DebriefResponse,
   DebriefTriggerMoment,
+  GymGradeResponse,
   RewriteResponse,
   SparringResponse,
   ToneLabel,
@@ -118,5 +119,24 @@ export function parseSparringResponse(data: unknown): SparringResponse | null {
     intensity: clamp0to100(data.intensity),
     constructive: data.constructive,
     coach_hint: data.coach_hint.trim(),
+  }
+}
+
+export function parseGymGradeResponse(data: unknown): GymGradeResponse | null {
+  if (
+    !isRecord(data) ||
+    !isFiniteNumber(data.score) ||
+    typeof data.passed !== 'boolean' ||
+    !isString(data.feedback) ||
+    !isString(data.better_version)
+  ) {
+    return null
+  }
+  const score = clamp0to100(data.score)
+  return {
+    score,
+    passed: data.passed,
+    feedback: data.feedback,
+    better_version: data.better_version,
   }
 }

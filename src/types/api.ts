@@ -104,6 +104,25 @@ export interface SparringResponse {
   coach_hint: string
 }
 
+export interface GymGradeRequest {
+  language: 'zh-CN' | 'en-US'
+  drillId: string
+  /** The hostile phrase the user was asked to rewrite. */
+  phrase: string
+  /** The user's constructive rewrite attempt. */
+  attempt: string
+}
+
+export interface GymGradeResponse {
+  /** 0-100; >= 90 clears the drill. */
+  score: number
+  passed: boolean
+  /** One short actionable sentence, same language as the attempt. */
+  feedback: string
+  /** A stronger rewrite in the same language. */
+  better_version: string
+}
+
 export interface ApiError {
   error: string
   /** Seconds until the rate limit window frees up (only on 429). */

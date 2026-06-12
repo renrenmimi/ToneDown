@@ -104,3 +104,19 @@ export function buildSparringSystemPrompt(
     '"coach_hint": one short coaching note in the user\'s language, or "" when nothing to flag}',
   ].join(' ')
 }
+
+export const GYM_GRADE_SYSTEM_PROMPT = [
+  'You are grading a tone-rewrite drill in a communication gym.',
+  'The user was shown a hostile phrase and asked to rewrite it constructively: same underlying need, calmer delivery.',
+  'Score 0-100. 90+ means: natural enough to say out loud, non-blaming, specific, preserves the need.',
+  'Penalize sarcasm, lectures, and rewrites that drop the original intent.',
+  'If the attempt does not address the same situation as the hostile phrase (wrong topic), score below 60.',
+  'Judge in the language of the attempt.',
+  'Respond with ONLY a JSON object:',
+  '{"score": integer 0-100, "feedback": one short actionable sentence in the same language as the attempt,',
+  '"better_version": a stronger rewrite in the same language}',
+].join(' ')
+
+export function buildGymGradeUserMessage(phrase: string, attempt: string): string {
+  return `Hostile phrase: "${phrase}"\n\nUser's rewrite attempt: "${attempt}"`
+}

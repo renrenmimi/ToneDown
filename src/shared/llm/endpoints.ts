@@ -3,6 +3,8 @@ import type {
   AnalyzeResponse,
   DebriefRequest,
   DebriefResponse,
+  GymGradeRequest,
+  GymGradeResponse,
   SparringRequest,
   SparringResponse,
   RewriteRequest,
@@ -15,6 +17,7 @@ import { estimateTextTokens, estimateTextsTokens } from './estimate'
 import {
   parseAnalyzeResponse,
   parseDebriefResponse,
+  parseGymGradeResponse,
   parseSparringResponse,
   parseRewriteResponse,
   parseTranscribeResponse,
@@ -30,6 +33,8 @@ const DEBRIEF_FIXED_TOKENS = 280
 const DEBRIEF_MAX_OUTPUT = 500
 const SPARRING_FIXED_TOKENS = 260
 const SPARRING_MAX_OUTPUT = 220
+const GYM_FIXED_TOKENS = 160
+const GYM_MAX_OUTPUT = 160
 const SEGMENT_SECONDS = 4
 
 export function toLanguageHint(language: AppLanguage): 'zh' | 'en' {
@@ -120,4 +125,19 @@ export const sparringEndpoint = createEndpoint<SparringRequest, SparringResponse
     SPARRING_MAX_OUTPUT,
   encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
   validate: parseSparringResponse,
+})
+
+export const gymGradeEndpoint = createEndpoint<GymGradeRequest, GymGradeResponse>({
+  path: '/api/gym-grade',
+  timeoutMs: 10_000,
+  breaker: 'gym',
+  feature: 'gym',
+  latencyStage: 'gym',
+  estimateTokens: (req) =>
+    GYM_FIXED_TOKENS +
+    estimateTextTokens(req.phrase) +
+    estimateTextTokens(req.attempt) +
+    GYM_MAX_OUTPUT,
+  encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
+  validate: parseGymGradeResponse,
 })

@@ -44,6 +44,7 @@ export interface DrillProgressRecord {
   drillId: string
   bestScore: number
   cleared: boolean
+  attempts: number
 }
 
 export interface GymGradeCacheRecord {

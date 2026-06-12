@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { DebriefResponse, SparringResponse } from '../../src/types/api.js'
+import type { DebriefResponse, GymGradeResponse, SparringResponse } from '../../src/types/api.js'
 
 // Server-only zod schemas for LLM outputs. Deliberately NOT shared with the
 // client at runtime: a runtime-shared module would have to satisfy both the
@@ -69,6 +69,36 @@ export function parseSparringJson(raw: string): SparringResponse | null {
     return {
       ...result.data,
       intensity: Math.min(100, Math.max(0, Math.round(result.data.intensity))),
+    }
+  } catch {
+    return null
+  }
+}
+
+const gymGradeRawSchema = z.object({
+  score: z.number().finite(),
+  feedback: boundedString(300),
+  better_version: boundedString(400),
+})
+
+export const gymGradeResponseSchema = gymGradeRawSchema satisfies z.ZodType<
+  Omit<GymGradeResponse, 'passed'>
+>
+
+/** `passed` is derived server-side — the model only emits the score. */
+export function parseGymGradeJson(raw: string): GymGradeResponse | null {
+  try {
+    const parsed: unknown = JSON.parse(stripCodeFence(raw))
+    const result = gymGradeRawSchema.safeParse(parsed)
+    if (!result.success) {
+      return null
+    }
+    const score = Math.min(100, Math.max(0, Math.round(result.data.score)))
+    return {
+      score,
+      passed: score >= 90,
+      feedback: result.data.feedback,
+      better_version: result.data.better_version,
     }
   } catch {
     return null
