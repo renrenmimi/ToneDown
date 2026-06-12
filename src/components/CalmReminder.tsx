@@ -1,126 +1,44 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveSessionT } from '@/features/live-session/i18n'
+import { useSession, useSessionPhase } from '@/features/live-session/machine/selectors'
+import { sessionStore } from '@/features/live-session/machine/sessionStore'
+import { INTERVENTION_DURATION_MS } from '@/features/live-session/machine/sessionMachine'
 
-interface CalmReminderProps {
-  score: number
-  isActive: boolean
-}
+const REMINDER_DURATION_SECONDS = INTERVENTION_DURATION_MS / 1_000
 
-const TRIGGER_SCORE = 70
-const TRIGGER_DURATION_MS = 5_000
-const REMINDER_DURATION_SECONDS = 30
-const COOLDOWN_MS = 60_000
-
-export function CalmReminder({ score, isActive }: CalmReminderProps) {
+/**
+ * Pure view of the machine's `intervention` phase. All trigger timing
+ * (sustain, cooldown, auto-dismiss) lives in the session reducer; this
+ * component only renders the countdown and dispatches the acknowledgement.
+ */
+export function CalmReminder() {
   const copy = useLiveSessionT().calmReminder
-  const [isVisible, setIsVisible] = useState(false)
-  const [countdown, setCountdown] = useState(REMINDER_DURATION_SECONDS)
+  const phase = useSessionPhase()
+  const endsAt = useSession((s) => s.interventionEndsAt)
 
-  const highRiskTimerRef = useRef<number | null>(null)
-  const countdownTimerRef = useRef<number | null>(null)
-  const cooldownUntilRef = useRef(0)
+  const isVisible = phase === 'intervention' && endsAt !== null
 
-  const clearHighRiskTimer = useCallback(() => {
-    if (highRiskTimerRef.current !== null) {
-      window.clearTimeout(highRiskTimerRef.current)
-      highRiskTimerRef.current = null
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!isVisible) {
+      return
     }
-  }, [])
-
-  const clearCountdownTimer = useCallback(() => {
-    if (countdownTimerRef.current !== null) {
-      window.clearInterval(countdownTimerRef.current)
-      countdownTimerRef.current = null
-    }
-  }, [])
-
-  const closeReminder = useCallback(() => {
-    clearHighRiskTimer()
-    clearCountdownTimer()
-    setIsVisible(false)
-    setCountdown(REMINDER_DURATION_SECONDS)
-    cooldownUntilRef.current = Date.now() + COOLDOWN_MS
-  }, [clearCountdownTimer, clearHighRiskTimer])
-
-  const openReminder = useCallback(() => {
-    clearHighRiskTimer()
-    clearCountdownTimer()
-
-    setCountdown(REMINDER_DURATION_SECONDS)
-    setIsVisible(true)
-
-    countdownTimerRef.current = window.setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearCountdownTimer()
-          setIsVisible(false)
-          cooldownUntilRef.current = Date.now() + COOLDOWN_MS
-          return REMINDER_DURATION_SECONDS
-        }
-
-        return prev - 1
-      })
+    const timerId = window.setInterval(() => {
+      setNow(Date.now())
     }, 1_000)
-  }, [clearCountdownTimer, clearHighRiskTimer])
-
-  useEffect(() => {
-    if (!isActive) {
-      clearHighRiskTimer()
-      clearCountdownTimer()
-
-      if (isVisible) {
-        const resetTimerId = window.setTimeout(() => {
-          setIsVisible(false)
-          setCountdown(REMINDER_DURATION_SECONDS)
-        }, 0)
-
-        return () => {
-          window.clearTimeout(resetTimerId)
-        }
-      }
-
-      return
-    }
-
-    if (isVisible) {
-      return
-    }
-
-    if (Date.now() < cooldownUntilRef.current) {
-      clearHighRiskTimer()
-      return
-    }
-
-    if (score >= TRIGGER_SCORE) {
-      if (highRiskTimerRef.current === null) {
-        highRiskTimerRef.current = window.setTimeout(() => {
-          highRiskTimerRef.current = null
-          openReminder()
-        }, TRIGGER_DURATION_MS)
-      }
-      return
-    }
-
-    clearHighRiskTimer()
-  }, [
-    clearCountdownTimer,
-    clearHighRiskTimer,
-    isActive,
-    isVisible,
-    openReminder,
-    score,
-  ])
-
-  useEffect(() => {
     return () => {
-      clearHighRiskTimer()
-      clearCountdownTimer()
+      window.clearInterval(timerId)
     }
-  }, [clearCountdownTimer, clearHighRiskTimer])
+  }, [isVisible])
 
-  if (!isVisible || !isActive) {
+  if (!isVisible) {
     return null
   }
+
+  const countdown = Math.min(
+    REMINDER_DURATION_SECONDS,
+    Math.max(0, Math.ceil((endsAt - now) / 1_000)),
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6 backdrop-blur-sm">
@@ -142,7 +60,9 @@ export function CalmReminder({ score, isActive }: CalmReminderProps) {
         <button
           type="button"
           className="mt-5 w-full rounded-full bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
-          onClick={closeReminder}
+          onClick={() => {
+            sessionStore.dispatch({ type: 'INTERVENTION_ACKNOWLEDGED', at: Date.now() })
+          }}
         >
           {copy.button}
         </button>

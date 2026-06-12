@@ -3,6 +3,8 @@
 // ticker reads the signal at its own 2s cadence; the gauge (M1) subscribes
 // directly and writes to the DOM via refs.
 
+import { useSyncExternalStore } from 'react'
+
 export interface Signal<T> {
   get(): T
   set(value: T): void
@@ -26,4 +28,12 @@ export function createSignal<T>(initial: T): Signal<T> {
       return () => listeners.delete(listener)
     },
   }
+}
+
+/** React subscription to a signal (re-renders the consumer on every set). */
+export function useSignalValue<T>(signal: Signal<T>): T {
+  return useSyncExternalStore(
+    (onChange) => signal.subscribe(onChange),
+    () => signal.get(),
+  )
 }

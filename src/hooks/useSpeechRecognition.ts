@@ -66,6 +66,10 @@ const getSpeechRecognitionCtor = (): SpeechRecognitionCtor | null => {
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
 }
 
+export function isSpeechRecognitionSupported(): boolean {
+  return Boolean(getSpeechRecognitionCtor())
+}
+
 /**
  * Web Speech API engine. Since the Groq Whisper pipeline became the primary
  * STT path this only runs as the automatic fallback; results flow into the
