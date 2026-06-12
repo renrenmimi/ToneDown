@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { transcribe, toLanguageHint } from '../lib/apiClient'
 import { CircuitBreaker } from '@/shared/circuitBreaker'
 import { recordLatency } from '@/shared/latencyLog'
+import {
+  filterTranscript,
+  isSilentSegment,
+  pickMimeType,
+} from '@/features/live-session/lib/sttFilters'
 import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
 
 // Segment length tradeoff: Whisper accuracy degrades (and hallucination odds
@@ -10,50 +15,6 @@ import type { AppLanguage, SttEngine, TranscriptEntry } from '../types/app'
 const SEGMENT_MS = 4_000
 const VOLUME_SAMPLE_MS = 100
 const MIN_PROBE_DELAY_MS = 1_000
-
-// Silence gate: segments quieter than this are dropped without uploading.
-// Saves Groq quota and is the primary defense against Whisper hallucinating
-// text on silence (observed live: near-silent audio with a zh hint reliably
-// produced "请不吝点赞 订阅 转发 …").
-const SILENCE_MEAN_THRESHOLD = 5
-const SILENCE_PEAK_THRESHOLD = 12
-
-// Known Whisper silence hallucinations, matched against the whole trimmed result.
-const HALLUCINATION_PATTERNS: RegExp[] = [
-  /^(thank you|thanks|thank you for watching|thanks for watching|please subscribe|bye)[.!\s]*$/i,
-  /字幕由.*提供/,
-  /请不吝点赞/,
-  /谢谢(大家)?(观看|收看)/,
-  /明镜与点点/,
-  /amara\.org/i,
-]
-
-const QUIET_PEAK_THRESHOLD = 15
-const QUIET_MIN_TEXT_LENGTH = 5
-
-function pickMimeType(): string | null {
-  if (typeof MediaRecorder === 'undefined') {
-    return null
-  }
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
-  return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? null
-}
-
-function filterTranscript(raw: string, peakVolume: number): string | null {
-  const text = raw.trim()
-  if (text.length === 0) {
-    return null
-  }
-  if (HALLUCINATION_PATTERNS.some((pattern) => pattern.test(text))) {
-    return null
-  }
-  // A near-silent segment that still produced a tiny result is almost
-  // certainly noise rather than speech.
-  if (peakVolume < QUIET_PEAK_THRESHOLD && text.length < QUIET_MIN_TEXT_LENGTH) {
-    return null
-  }
-  return text
-}
 
 interface UseGroqTranscriberArgs {
   mediaStream: MediaStream | null
@@ -186,7 +147,7 @@ export function useGroqTranscriber({
       // Probes skip the silence gate: recovery only needs the HTTP round trip
       // to succeed, and the probe's text is discarded either way.
       if (!isProbe) {
-        if (blob.size === 0 || (mean < SILENCE_MEAN_THRESHOLD && peak < SILENCE_PEAK_THRESHOLD)) {
+        if (blob.size === 0 || isSilentSegment(mean, peak)) {
           return
         }
       }

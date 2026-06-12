@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { SUGGESTION_MAP } from '@/features/live-session/lib/lexicon'
 import type { AppLanguage } from '../types/app'
 
 interface LlmSuggestionInput {
@@ -13,7 +14,7 @@ interface ToneSuggestionProps {
   language: AppLanguage
 }
 
-interface SuggestionItem {
+interface ActiveSuggestion {
   keyword: string
   replacement: string
   isAi?: boolean
@@ -23,42 +24,13 @@ const DISPLAY_DURATION_MS = 8_000
 const AI_DISPLAY_DURATION_MS = 10_000
 const MAX_ORIGINAL_DISPLAY_CHARS = 60
 
-const SUGGESTION_MAP: Record<string, SuggestionItem> = {
-  你总是: { keyword: '你总是…', replacement: '我注意到有时候会…' },
-  你从来不: { keyword: '你从来不…', replacement: '我希望我们能更多地…' },
-  你怎么又: { keyword: '你怎么又…', replacement: '这件事对我来说很重要…' },
-  烦死了: { keyword: '烦死了', replacement: '我现在有点不舒服，需要一点空间' },
-  别说了: { keyword: '别说了', replacement: '我需要一点时间来整理思绪' },
-  你就不能: { keyword: '你就不能…', replacement: '如果你能…我会很感激' },
-  'you always': {
-    keyword: 'you always',
-    replacement: "Try saying: I've noticed that sometimes...",
-  },
-  'you never': {
-    keyword: 'you never',
-    replacement: 'Try saying: I wish we could more often...',
-  },
-  'shut up': {
-    keyword: 'shut up',
-    replacement: 'Try saying: I need a moment to collect my thoughts',
-  },
-  whatever: {
-    keyword: 'whatever',
-    replacement: "Try saying: I'm feeling frustrated and need a break",
-  },
-  "i'm done": {
-    keyword: "I'm done",
-    replacement: 'Try saying: I am feeling overwhelmed right now',
-  },
-}
-
 const COPY: Record<AppLanguage, { original: string; suggestion: string; aiBadge: string }> = {
   'zh-CN': { original: '原话', suggestion: '建议', aiBadge: 'AI 建议' },
   'en-US': { original: 'Original', suggestion: 'Suggestion', aiBadge: 'AI suggestion' },
 }
 
 export function ToneSuggestion({ triggerKeyword, llmSuggestion = null, language }: ToneSuggestionProps) {
-  const [activeItem, setActiveItem] = useState<SuggestionItem | null>(null)
+  const [activeItem, setActiveItem] = useState<ActiveSuggestion | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
   const hideTimerRef = useRef<number | null>(null)
