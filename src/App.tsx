@@ -4,8 +4,10 @@ import { ToneSuggestion } from './components/ToneSuggestion'
 import { useAudioAnalyser } from './hooks/useAudioAnalyser'
 import { useEmotionDetector } from './hooks/useEmotionDetector'
 import { useGroqTranscriber } from './hooks/useGroqTranscriber'
+import { useRewriteSuggestion } from './hooks/useRewriteSuggestion'
 import { useSpeechRate } from './hooks/useSpeechRate'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
+import { useToneAnalysis } from './hooks/useToneAnalysis'
 import { useTranscriptStream } from './hooks/useTranscriptStream'
 import type {
   AppLanguage,
@@ -30,6 +32,7 @@ const I18N: Record<
     engineGroq: string
     engineBrowser: string
     sttUnavailable: string
+    rulesMode: string
     toneSuggestion: string
     toneSuggestionHint: string
     toneSuggestionEmpty: string
@@ -71,6 +74,7 @@ const I18N: Record<
     engineGroq: 'Groq 语音识别',
     engineBrowser: '浏览器识别',
     sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
+    rulesMode: 'LLM 离线 · 规则模式',
     timeline: '情绪变化时间线（最近 5 分钟）',
     timelineEmpty: '开始说话后，这里会出现情绪变化曲线。',
     notSupported: '请使用 Chrome 或 Edge 浏览器以获得最佳体验',
@@ -117,6 +121,7 @@ const I18N: Record<
     engineGroq: 'Groq Whisper',
     engineBrowser: 'Browser STT',
     sttUnavailable: 'Speech transcription is temporarily unavailable; scoring on volume only.',
+    rulesMode: 'LLM offline · rules mode',
     timeline: 'Emotion Timeline (Last 5 Minutes)',
     timelineEmpty: 'The emotion curve will appear once speech is detected.',
     notSupported: 'Please use Chrome or Edge for the best experience',
@@ -323,13 +328,27 @@ function App() {
   })
 
   const { wordsPerMinute, speedLevel } = useSpeechRate(stream.entries, language)
+  const toneAnalysis = useToneAnalysis({
+    entries: stream.entries,
+    language,
+    isActive: isMonitoring,
+  })
   const emotion = useEmotionDetector({
     volume: audio.volume,
     speedLevel,
     transcript: stream.entries,
     isActive: isMonitoring,
+    llmTone: toneAnalysis.latest,
+    llmAvailable: toneAnalysis.available,
   })
   const resetEmotion = emotion.reset
+  const rewrite = useRewriteSuggestion({
+    score: emotion.score,
+    latestHighRiskKeyword: emotion.latestHighRiskKeyword,
+    entries: stream.entries,
+    language,
+    isActive: isMonitoring,
+  })
 
   // Groq STT only needs mic + MediaRecorder; Web Speech is an optional fallback.
   const isBrowserSupported = audio.isSupported
@@ -537,6 +556,13 @@ function App() {
 
           <p className="mt-2 text-center text-sm text-slate-300">{copy.emotionState[emotion.emotionLevel]}</p>
 
+          {isMonitoring && emotion.fusionMode === 'llm' && toneAnalysis.latest && (
+            <p className="mt-1 text-center text-xs text-slate-400">
+              <span className="font-semibold text-violet-300">{toneAnalysis.latest.tone}</span>
+              {toneAnalysis.latest.rationale ? ` · ${toneAnalysis.latest.rationale}` : ''}
+            </p>
+          )}
+
           <div className="mt-5 grid grid-cols-3 gap-2">
             <MetricCard label={copy.metrics.volume} value={`🔊 ${audio.volume}%`} />
             <MetricCard
@@ -552,14 +578,21 @@ function App() {
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-slate-300">{copy.transcript}</p>
             {isMonitoring && (
-              <span
-                className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                  transcriber.engine === 'groq'
-                    ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
-                    : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
-                }`}
-              >
-                {transcriber.engine === 'groq' ? copy.engineGroq : copy.engineBrowser}
+              <span className="flex items-center gap-1.5">
+                {!toneAnalysis.available && (
+                  <span className="rounded-full border border-slate-500/50 bg-slate-700/40 px-2 py-0.5 text-xs font-semibold text-slate-300">
+                    {copy.rulesMode}
+                  </span>
+                )}
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                    transcriber.engine === 'groq'
+                      ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
+                      : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+                  }`}
+                >
+                  {transcriber.engine === 'groq' ? copy.engineGroq : copy.engineBrowser}
+                </span>
               </span>
             )}
           </div>
@@ -628,6 +661,7 @@ function App() {
 
       <ToneSuggestion
         triggerKeyword={isMonitoring ? emotion.latestHighRiskKeyword : null}
+        llmSuggestion={rewrite.suggestion}
         language={language}
       />
       <CalmReminder score={emotion.score} isActive={isMonitoring} language={language} />

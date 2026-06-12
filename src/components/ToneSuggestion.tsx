@@ -1,17 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppLanguage } from '../types/app'
 
+interface LlmSuggestionInput {
+  original: string
+  rewrite: string
+}
+
 interface ToneSuggestionProps {
   triggerKeyword: string | null
+  /** LLM rewrite from /api/rewrite; when present it takes precedence over the keyword map. */
+  llmSuggestion?: LlmSuggestionInput | null
   language: AppLanguage
 }
 
 interface SuggestionItem {
   keyword: string
   replacement: string
+  isAi?: boolean
 }
 
 const DISPLAY_DURATION_MS = 8_000
+const AI_DISPLAY_DURATION_MS = 10_000
+const MAX_ORIGINAL_DISPLAY_CHARS = 60
 
 const SUGGESTION_MAP: Record<string, SuggestionItem> = {
   你总是: { keyword: '你总是…', replacement: '我注意到有时候会…' },
@@ -42,17 +52,46 @@ const SUGGESTION_MAP: Record<string, SuggestionItem> = {
   },
 }
 
-const COPY: Record<AppLanguage, { original: string; suggestion: string }> = {
-  'zh-CN': { original: '原话', suggestion: '建议' },
-  'en-US': { original: 'Original', suggestion: 'Suggestion' },
+const COPY: Record<AppLanguage, { original: string; suggestion: string; aiBadge: string }> = {
+  'zh-CN': { original: '原话', suggestion: '建议', aiBadge: 'AI 建议' },
+  'en-US': { original: 'Original', suggestion: 'Suggestion', aiBadge: 'AI suggestion' },
 }
 
-export function ToneSuggestion({ triggerKeyword, language }: ToneSuggestionProps) {
+export function ToneSuggestion({ triggerKeyword, llmSuggestion = null, language }: ToneSuggestionProps) {
   const [activeItem, setActiveItem] = useState<SuggestionItem | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
   const hideTimerRef = useRef<number | null>(null)
   const lastShownRef = useRef<Record<string, number>>({})
+  const lastLlmSuggestionRef = useRef<LlmSuggestionInput | null>(null)
+
+  useEffect(() => {
+    if (!llmSuggestion || llmSuggestion === lastLlmSuggestionRef.current) {
+      return
+    }
+    lastLlmSuggestionRef.current = llmSuggestion
+
+    const original =
+      llmSuggestion.original.length > MAX_ORIGINAL_DISPLAY_CHARS
+        ? `${llmSuggestion.original.slice(0, MAX_ORIGINAL_DISPLAY_CHARS)}…`
+        : llmSuggestion.original
+
+    const showTimerId = window.setTimeout(() => {
+      setActiveItem({ keyword: original, replacement: llmSuggestion.rewrite, isAi: true })
+      setIsVisible(true)
+
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current)
+      }
+      hideTimerRef.current = window.setTimeout(() => {
+        setIsVisible(false)
+      }, AI_DISPLAY_DURATION_MS)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(showTimerId)
+    }
+  }, [llmSuggestion])
 
   useEffect(() => {
     if (!triggerKeyword) {
@@ -117,6 +156,11 @@ export function ToneSuggestion({ triggerKeyword, language }: ToneSuggestionProps
   return (
     <div className={containerClassName}>
       <div className="rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl backdrop-blur">
+        {activeItem.isAi && (
+          <p className="mb-2 inline-block rounded-full border border-violet-400/40 bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-200">
+            ✨ {copy.aiBadge}
+          </p>
+        )}
         <div className="flex items-start gap-3 text-sm">
           <div className="w-1/2 rounded-xl border border-red-500/40 bg-red-500/10 p-3">
             <p className="mb-1 text-xs text-red-300">{copy.original}</p>
