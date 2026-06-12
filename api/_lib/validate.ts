@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, RewriteResponse, ToneLabel } from '../../src/types/api'
+import type { AnalyzeResponse, RewriteResponse, ToneLabel } from '../../src/types/api.js'
 
 const TONE_LABELS: ToneLabel[] = [
   'aggressive',

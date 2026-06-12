@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { RewriteRequest } from '../src/types/api'
-import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http'
-import { checkRateLimit } from './_lib/ratelimit'
-import { chatJSON, UpstreamError } from './_lib/groq'
-import { buildRewriteUserMessage, CORRECTIVE_MESSAGE, REWRITE_SYSTEM_PROMPT } from './_lib/prompts'
-import { parseRewriteJson } from './_lib/validate'
+import type { RewriteRequest } from '../src/types/api.js'
+import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http.js'
+import { checkRateLimit } from './_lib/ratelimit.js'
+import { chatJSON, UpstreamError } from './_lib/groq.js'
+import { buildRewriteUserMessage, CORRECTIVE_MESSAGE, REWRITE_SYSTEM_PROMPT } from './_lib/prompts.js'
+import { parseRewriteJson } from './_lib/validate.js'
 
 const ROUTE = 'rewrite'
 const MAX_BODY_BYTES = 16 * 1024

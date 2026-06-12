@@ -3,13 +3,14 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.api.tsbuildinfo",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "ESNext",
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Bundler mode (matches how Vercel's esbuild and tsx resolve imports) */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* Node ESM mode: Vercel's runtime requires explicit .js extensions on
+       relative imports; nodenext makes tsc itself reject extensionless ones,
+       so this class of FUNCTION_INVOCATION_FAILED can't pass the build. */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
