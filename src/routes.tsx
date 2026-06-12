@@ -5,6 +5,7 @@ import { Redirect, Route, Switch } from 'wouter'
 const LandingPage = lazy(() => import('./features/landing/LandingPage'))
 const LiveSessionPage = lazy(() => import('./features/live-session/LiveSessionPage'))
 const HistoryPage = lazy(() => import('./features/history/HistoryPage'))
+const SparringPage = lazy(() => import('./features/sparring/SparringPage'))
 
 function RouteFallback() {
   return <div className="min-h-screen bg-surface" aria-hidden />
@@ -17,6 +18,7 @@ export function AppRoutes() {
         <Route path="/" component={LandingPage} />
         <Route path="/app" component={LiveSessionPage} />
         <Route path="/history" component={HistoryPage} />
+        <Route path="/spar" component={SparringPage} />
         <Route>
           <Redirect to="/" />
         </Route>

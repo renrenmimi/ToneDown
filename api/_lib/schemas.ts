@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { DebriefResponse } from '../../src/types/api.js'
+import type { DebriefResponse, SparringResponse } from '../../src/types/api.js'
 
 // Server-only zod schemas for LLM outputs. Deliberately NOT shared with the
 // client at runtime: a runtime-shared module would have to satisfy both the
@@ -38,6 +38,38 @@ export function parseDebriefJson(raw: string): DebriefResponse | null {
     const parsed: unknown = JSON.parse(stripCodeFence(raw))
     const result = debriefResponseSchema.safeParse(parsed)
     return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}
+
+const toneLabelSchema = z.enum([
+  'aggressive',
+  'passive-aggressive',
+  'defensive',
+  'neutral',
+  'positive',
+])
+
+export const sparringResponseSchema = z.object({
+  reply: boundedString(400),
+  user_tone: toneLabelSchema,
+  intensity: z.number().finite(),
+  constructive: z.boolean(),
+  coach_hint: z.string().trim().max(200),
+}) satisfies z.ZodType<SparringResponse>
+
+export function parseSparringJson(raw: string): SparringResponse | null {
+  try {
+    const parsed: unknown = JSON.parse(stripCodeFence(raw))
+    const result = sparringResponseSchema.safeParse(parsed)
+    if (!result.success) {
+      return null
+    }
+    return {
+      ...result.data,
+      intensity: Math.min(100, Math.max(0, Math.round(result.data.intensity))),
+    }
   } catch {
     return null
   }

@@ -70,6 +70,40 @@ export interface DebriefResponse {
   one_habit_to_practice: string
 }
 
+export type SparringPersonaId =
+  | 'slow-barista'
+  | 'pushy-salesperson'
+  | 'passive-aggressive-coworker'
+  | 'unreasonable-landlord'
+  | 'critical-relative'
+  | 'furious-customer'
+
+export interface SparringTurn {
+  role: 'user' | 'partner'
+  text: string
+}
+
+export interface SparringRequest {
+  language: 'zh-CN' | 'en-US'
+  /** Persona prompts live SERVER-side; the client only names one. */
+  personaId: SparringPersonaId
+  /** Client-computed mood 0 (storming off) .. 100 (won over); colors the reply. */
+  mood: number
+  /** Sliding window, oldest first. */
+  history: SparringTurn[]
+}
+
+export interface SparringResponse {
+  /** The persona's next line. */
+  reply: string
+  /** Grade of the user's LAST message. */
+  user_tone: ToneLabel
+  intensity: number
+  constructive: boolean
+  /** One short coaching note, '' when nothing to flag. */
+  coach_hint: string
+}
+
 export interface ApiError {
   error: string
   /** Seconds until the rate limit window frees up (only on 429). */

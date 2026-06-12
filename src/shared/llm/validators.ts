@@ -3,6 +3,7 @@ import type {
   DebriefResponse,
   DebriefTriggerMoment,
   RewriteResponse,
+  SparringResponse,
   ToneLabel,
   TranscribeResponse,
 } from '@/types/api'
@@ -96,5 +97,26 @@ export function parseDebriefResponse(data: unknown): DebriefResponse | null {
     emotional_arc: data.emotional_arc,
     trigger_moments: data.trigger_moments.slice(0, 3),
     one_habit_to_practice: data.one_habit_to_practice,
+  }
+}
+
+export function parseSparringResponse(data: unknown): SparringResponse | null {
+  if (
+    !isRecord(data) ||
+    !isString(data.reply) ||
+    data.reply.trim().length === 0 ||
+    !isToneLabel(data.user_tone) ||
+    !isFiniteNumber(data.intensity) ||
+    typeof data.constructive !== 'boolean' ||
+    !isString(data.coach_hint)
+  ) {
+    return null
+  }
+  return {
+    reply: data.reply.trim(),
+    user_tone: data.user_tone,
+    intensity: clamp0to100(data.intensity),
+    constructive: data.constructive,
+    coach_hint: data.coach_hint.trim(),
   }
 }
