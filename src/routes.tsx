@@ -7,6 +7,7 @@ const LiveSessionPage = lazy(() => import('./features/live-session/LiveSessionPa
 const HistoryPage = lazy(() => import('./features/history/HistoryPage'))
 const SparringPage = lazy(() => import('./features/sparring/SparringPage'))
 const GymPage = lazy(() => import('./features/drills/GymPage'))
+const DemoPage = lazy(() => import('./features/demo/DemoPage'))
 
 function RouteFallback() {
   return <div className="min-h-screen bg-surface" aria-hidden />
@@ -21,6 +22,7 @@ export function AppRoutes() {
         <Route path="/history" component={HistoryPage} />
         <Route path="/spar" component={SparringPage} />
         <Route path="/gym" component={GymPage} />
+        <Route path="/demo" component={DemoPage} />
         <Route>
           <Redirect to="/" />
         </Route>

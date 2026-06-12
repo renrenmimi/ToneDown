@@ -31,7 +31,12 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
-export function BreathingGuide() {
+interface BreathingGuideProps {
+  /** Demo mode: skip the LLM grounding fetch and show this line instead. */
+  staticGrounding?: string
+}
+
+export function BreathingGuide({ staticGrounding }: BreathingGuideProps = {}) {
   const copy = useLiveSessionT()
   const { locale } = useLocale()
   const reducedMotion = usePrefersReducedMotion()
@@ -49,6 +54,9 @@ export function BreathingGuide() {
       return
     }
     requestedRef.current = true
+    if (staticGrounding !== undefined) {
+      return
+    }
     const lastLine = transcript[transcript.length - 1]?.text ?? ''
     if (lastLine.length < 4 || !rewriteEndpoint.canAttempt()) {
       return
@@ -92,7 +100,9 @@ export function BreathingGuide() {
 
   return (
     <div className="flex flex-col items-center py-2 text-center">
-      <p className="text-sm text-ink-secondary">{grounding ?? copy.breath.fallback}</p>
+      <p className="text-sm text-ink-secondary">
+        {staticGrounding ?? grounding ?? copy.breath.fallback}
+      </p>
 
       <div className="relative my-6 flex h-56 w-56 items-center justify-center">
         {reducedMotion ? (

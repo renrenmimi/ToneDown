@@ -30,7 +30,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'e2e/**/*.ts', 'playwright.config.ts'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,

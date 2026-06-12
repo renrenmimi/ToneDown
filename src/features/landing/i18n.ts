@@ -4,7 +4,7 @@ interface LandingStrings {
   heroTitle: string
   heroSub: string
   ctaLive: string
-  ctaHow: string
+  ctaDemo: string
   gaugeCaption: string
   how: {
     title: string
@@ -32,7 +32,7 @@ export const { useT: useLandingT } = createI18n<LandingStrings>({
     heroSub:
       'ToneDown 与你一起倾听：每 2 秒为语气打分，在火药味出现时递上更温和的说法。全程不录音。',
     ctaLive: '立即体验',
-    ctaHow: '看看它如何工作',
+    ctaDemo: '看演示（30 秒）',
     gaugeCaption: '真实仪表盘 · 录制片段回放',
     how: {
       title: '它如何陪你说话',
@@ -62,7 +62,7 @@ export const { useT: useLandingT } = createI18n<LandingStrings>({
     heroSub:
       'ToneDown listens with you — scoring your tone every two seconds and handing you calmer words when things heat up. Nothing is ever recorded.',
     ctaLive: 'Try it live',
-    ctaHow: 'See how it works',
+    ctaDemo: 'Watch the demo (30s)',
     gaugeCaption: 'The real gauge · replaying a recorded moment',
     how: {
       title: 'How it keeps you company',
