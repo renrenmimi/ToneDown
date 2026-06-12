@@ -26,6 +26,18 @@ export const GROUNDING_SYSTEM_PROMPT = [
   'Respond with ONLY a JSON object: {"rewrite": string}',
 ].join(' ')
 
+export const DEBRIEF_SYSTEM_PROMPT = [
+  'You are a warm, non-judgmental communication coach reviewing a finished live conversation session.',
+  'Input: utterances with hostility scores (0-100, higher = more heated) and a score timeline.',
+  'Write in the SAME language as the utterances (Chinese or English).',
+  'Respond with ONLY a JSON object:',
+  '{"summary": at most 2 sentences on how the conversation went, encouraging but honest,',
+  '"emotional_arc": 1 sentence describing the shape of the session (e.g. calm start, mid spike, calm landing),',
+  '"trigger_moments": array of 0-3 objects {"quote": short exact quote that escalated things,',
+  '"why_it_escalated": one short sentence, "better_phrasing": a calmer way to say the same thing},',
+  '"one_habit_to_practice": one specific, practicable habit for next time, max 200 characters}',
+].join(' ')
+
 export const CORRECTIVE_MESSAGE =
   'Your previous reply was not a valid JSON object matching the required schema. ' +
   'Respond again with ONLY the JSON object, exactly the keys specified, no markdown, no commentary.'
@@ -33,6 +45,16 @@ export const CORRECTIVE_MESSAGE =
 export function buildAnalyzeUserMessage(text: string, context: string[]): string {
   const contextBlock = context.length > 0 ? context.join('\n') : '(none)'
   return `Context (oldest first):\n${contextBlock}\n\nLatest utterance: "${text}"`
+}
+
+export function buildDebriefUserMessage(
+  durationMs: number,
+  entries: { text: string; score: number }[],
+  scoreSeries: [number, number][],
+): string {
+  const lines = entries.map((e) => `[${e.score}] ${e.text}`).join('\n')
+  const series = scoreSeries.map(([ms, score]) => `${Math.round(ms / 1000)}s:${score}`).join(' ')
+  return `Session length: ${Math.round(durationMs / 1000)}s\n\nUtterances (with tone scores):\n${lines}\n\nScore timeline: ${series}`
 }
 
 export function buildRewriteUserMessage(utterance: string, context: string[]): string {

@@ -12,7 +12,8 @@ function readInitialLocale(): Locale {
   } catch {
     // Private browsing or storage disabled: fall through to the default.
   }
-  return 'zh-CN'
+  // English by default; Chinese stays one tap away (user decision, M2).
+  return 'en-US'
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {

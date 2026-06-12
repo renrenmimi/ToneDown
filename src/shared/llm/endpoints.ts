@@ -1,6 +1,8 @@
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  DebriefRequest,
+  DebriefResponse,
   RewriteRequest,
   RewriteResponse,
   TranscribeResponse,
@@ -10,6 +12,7 @@ import { createEndpoint } from './client'
 import { estimateTextTokens, estimateTextsTokens } from './estimate'
 import {
   parseAnalyzeResponse,
+  parseDebriefResponse,
   parseRewriteResponse,
   parseTranscribeResponse,
 } from './validators'
@@ -20,6 +23,8 @@ const ANALYZE_FIXED_TOKENS = 140
 const ANALYZE_MAX_OUTPUT = 150
 const REWRITE_FIXED_TOKENS = 150
 const REWRITE_MAX_OUTPUT = 200
+const DEBRIEF_FIXED_TOKENS = 280
+const DEBRIEF_MAX_OUTPUT = 500
 const SEGMENT_SECONDS = 4
 
 export function toLanguageHint(language: AppLanguage): 'zh' | 'en' {
@@ -81,4 +86,19 @@ export const rewriteEndpoint = createEndpoint<RewriteRequest, RewriteResponse>({
     REWRITE_MAX_OUTPUT,
   encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
   validate: parseRewriteResponse,
+})
+
+export const debriefEndpoint = createEndpoint<DebriefRequest, DebriefResponse>({
+  path: '/api/debrief',
+  timeoutMs: 20_000,
+  breaker: 'debrief',
+  feature: 'debrief',
+  latencyStage: 'debrief',
+  estimateTokens: (req) =>
+    DEBRIEF_FIXED_TOKENS +
+    estimateTextsTokens(req.entries.map((e) => e.text)) +
+    req.scoreSeries.length * 4 +
+    DEBRIEF_MAX_OUTPUT,
+  encode: (req) => ({ body: JSON.stringify(req), headers: jsonHeaders }),
+  validate: parseDebriefResponse,
 })

@@ -14,6 +14,8 @@ import {
 } from './machine/selectors'
 import { fusionSignal, sessionStore, volumeSignal } from './machine/sessionStore'
 import { SessionServices } from './services/SessionServices'
+import { useRecapPersistence } from '@/features/recap/useRecapPersistence'
+import { RecapView } from '@/features/recap/RecapView'
 import { isAudioAnalyserSupported } from './services/useAudioAnalyser'
 import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
@@ -22,6 +24,7 @@ import { useLocale } from '@/shared/i18n/localeContext'
 import { BreathingGuide } from './components/BreathingGuide'
 import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
+import { Link } from 'wouter'
 import { Aurora } from '@/shared/ui/Aurora'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
@@ -82,6 +85,7 @@ function LiveSessionPage() {
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
 
   const copy = useLiveSessionT()
+  useRecapPersistence()
 
   // The session machine is the single source of truth; the UI reads slices.
   const phase = useSessionPhase()
@@ -178,6 +182,13 @@ function LiveSessionPage() {
               <p className="mt-1 text-sm font-medium text-ink-secondary">{copy.subtitle}</p>
             </div>
             <div className="flex items-center gap-2">
+            <Link
+              href="/history"
+              aria-label={copy.historyLink}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
+            >
+              📈
+            </Link>
             <ThemeToggle ariaLabel={copy.themeToggle} />
             <div className="rounded-full border border-line-strong bg-sunken/80 p-1">
               <button
@@ -228,6 +239,10 @@ function LiveSessionPage() {
           </div>
         )}
 
+        {phase === 'recap' ? (
+          <RecapView />
+        ) : (
+        <>
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <div className="mb-3 text-center text-sm text-ink-muted">
             {isMonitoring ? `${copy.listeningTime}: ${formatDuration(elapsedSeconds)}` : ''}
@@ -357,6 +372,9 @@ function LiveSessionPage() {
           <p className="mt-3 text-xs text-ink-muted">{copy.toneSuggestionHint}</p>
         </section>
 
+
+        </>
+        )}
 
         <footer className="px-2 text-center text-xs text-ink-muted">{copy.disclaimer}</footer>
       </div>

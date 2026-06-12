@@ -1,5 +1,7 @@
 import type {
   AnalyzeResponse,
+  DebriefResponse,
+  DebriefTriggerMoment,
   RewriteResponse,
   ToneLabel,
   TranscribeResponse,
@@ -71,4 +73,28 @@ export function parseRewriteResponse(data: unknown): RewriteResponse | null {
     return null
   }
   return { rewrite: data.rewrite.trim() }
+}
+
+const isTriggerMoment = (value: unknown): value is DebriefTriggerMoment =>
+  isRecord(value) &&
+  isString(value.quote) &&
+  isString(value.why_it_escalated) &&
+  isString(value.better_phrasing)
+
+export function parseDebriefResponse(data: unknown): DebriefResponse | null {
+  if (
+    !isRecord(data) ||
+    !isString(data.summary) ||
+    !isString(data.emotional_arc) ||
+    !isArrayOf(isTriggerMoment)(data.trigger_moments) ||
+    !isString(data.one_habit_to_practice)
+  ) {
+    return null
+  }
+  return {
+    summary: data.summary,
+    emotional_arc: data.emotional_arc,
+    trigger_moments: data.trigger_moments.slice(0, 3),
+    one_habit_to_practice: data.one_habit_to_practice,
+  }
 }
