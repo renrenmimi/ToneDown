@@ -48,6 +48,28 @@ export interface RewriteResponse {
   rewrite: string
 }
 
+export interface DebriefRequest {
+  language: 'zh-CN' | 'en-US'
+  durationMs: number
+  /** Transcript thinned client-side: each entry with the fused score near its time. */
+  entries: { text: string; score: number }[]
+  /** Score timeline downsampled client-side: [offsetMs, score] pairs. */
+  scoreSeries: [number, number][]
+}
+
+export interface DebriefTriggerMoment {
+  quote: string
+  why_it_escalated: string
+  better_phrasing: string
+}
+
+export interface DebriefResponse {
+  summary: string
+  emotional_arc: string
+  trigger_moments: DebriefTriggerMoment[]
+  one_habit_to_practice: string
+}
+
 export interface ApiError {
   error: string
   /** Seconds until the rate limit window frees up (only on 429). */

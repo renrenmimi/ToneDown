@@ -29,6 +29,7 @@ const routes = {
   '/api/transcribe': (await import('../api/transcribe.ts')).default,
   '/api/analyze': (await import('../api/analyze.ts')).default,
   '/api/rewrite': (await import('../api/rewrite.ts')).default,
+  '/api/debrief': (await import('../api/debrief.ts')).default,
 }
 
 function readBody(req) {
