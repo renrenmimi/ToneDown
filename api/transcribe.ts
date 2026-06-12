@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { TranscribeResponse } from '../src/types/api'
-import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http'
-import { checkRateLimit } from './_lib/ratelimit'
-import { fetchGroq, UpstreamError, WHISPER_MODEL } from './_lib/groq'
+import type { TranscribeResponse } from '../src/types/api.js'
+import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http.js'
+import { checkRateLimit } from './_lib/ratelimit.js'
+import { fetchGroq, UpstreamError, WHISPER_MODEL } from './_lib/groq.js'
 
 const ROUTE = 'transcribe'
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024

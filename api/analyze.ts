@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { AnalyzeRequest } from '../src/types/api'
-import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http'
-import { checkRateLimit } from './_lib/ratelimit'
-import { chatJSON, UpstreamError } from './_lib/groq'
-import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserMessage, CORRECTIVE_MESSAGE } from './_lib/prompts'
-import { parseAnalyzeJson } from './_lib/validate'
+import type { AnalyzeRequest } from '../src/types/api.js'
+import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http.js'
+import { checkRateLimit } from './_lib/ratelimit.js'
+import { chatJSON, UpstreamError } from './_lib/groq.js'
+import { ANALYZE_SYSTEM_PROMPT, buildAnalyzeUserMessage, CORRECTIVE_MESSAGE } from './_lib/prompts.js'
+import { parseAnalyzeJson } from './_lib/validate.js'
 
 const ROUTE = 'analyze'
 const MAX_BODY_BYTES = 16 * 1024
