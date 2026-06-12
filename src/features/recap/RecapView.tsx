@@ -1,5 +1,7 @@
 import { sessionStore } from '@/features/live-session/machine/sessionStore'
+import { useLocale } from '@/shared/i18n/localeContext'
 import { useSignalValue } from '@/shared/state/signalBus'
+import { downloadRecapPng } from './recapPng'
 import { ArcSparkline } from './ArcSparkline'
 import { recapSignal } from './recapStore'
 import { useRecapT } from './i18n'
@@ -12,6 +14,7 @@ function formatDuration(ms: number): string {
 /** Post-session recap, rendered by /app while the machine sits in `recap`. */
 export function RecapView() {
   const copy = useRecapT()
+  const { locale } = useLocale()
   const { record, debriefStatus } = useSignalValue(recapSignal)
 
   if (!record) {
@@ -122,6 +125,15 @@ export function RecapView() {
           onClick={() => sessionStore.dispatch({ type: 'RECAP_CLOSED' })}
         >
           {copy.newSession}
+        </button>
+        <button
+          type="button"
+          className="rounded-full border border-line-strong bg-raised/70 px-7 py-3 text-sm font-semibold text-ink-secondary transition hover:text-ink"
+          onClick={() => {
+            void downloadRecapPng(record, locale)
+          }}
+        >
+          {copy.downloadCard}
         </button>
         <span className="text-xs text-ink-muted">{copy.savedLocally}</span>
       </div>
