@@ -6,6 +6,7 @@ interface LiveSessionStrings {
   themeToggle: string
   historyLink: string
   sparringLink: string
+  gymLink: string
   intro: string
   start: string
   stop: string
@@ -72,6 +73,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     themeToggle: '切换深浅色主题',
     historyLink: '查看历史',
     sparringLink: '对练场',
+    gymLink: '语气健身房',
     intro: '实时检测你的语气强度，帮助你把对话拉回冷静区。',
     start: '开始检测',
     stop: '停止',
@@ -146,6 +148,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     themeToggle: 'Toggle light/dark theme',
     historyLink: 'View history',
     sparringLink: 'Sparring mode',
+    gymLink: 'Tone Gym',
     intro: 'Track your tone in real time and bring conversations back to calm.',
     start: 'Start Detection',
     stop: 'Stop',
