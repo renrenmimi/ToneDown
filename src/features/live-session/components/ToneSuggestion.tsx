@@ -121,20 +121,20 @@ export function ToneSuggestion({ triggerKeyword, llmSuggestion = null }: ToneSug
 
   return (
     <div className={containerClassName}>
-      <div className="rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl backdrop-blur">
+      <div className="rounded-card border border-line bg-overlay/95 p-4 shadow-e3 backdrop-blur">
         {activeItem.isAi && (
-          <p className="mb-2 inline-block rounded-full border border-violet-400/40 bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-200">
+          <p className="mb-2 inline-block rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
             ✨ {copy.aiBadge}
           </p>
         )}
         <div className="flex items-start gap-3 text-sm">
-          <div className="w-1/2 rounded-xl border border-red-500/40 bg-red-500/10 p-3">
-            <p className="mb-1 text-xs text-red-300">{copy.original}</p>
-            <p className="font-semibold text-red-200">{activeItem.keyword}</p>
+          <div className="w-1/2 rounded-field border border-tone-hostile/40 bg-tone-hostile/10 p-3">
+            <p className="mb-1 text-xs text-tone-hostile">{copy.original}</p>
+            <p className="font-semibold text-ink">{activeItem.keyword}</p>
           </div>
-          <div className="w-1/2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
-            <p className="mb-1 text-xs text-emerald-300">{copy.suggestion}</p>
-            <p className="font-semibold text-emerald-100">{activeItem.replacement}</p>
+          <div className="w-1/2 rounded-field border border-brand/40 bg-brand/10 p-3">
+            <p className="mb-1 text-xs text-brand">{copy.suggestion}</p>
+            <p className="font-semibold text-ink">{activeItem.replacement}</p>
           </div>
         </div>
       </div>

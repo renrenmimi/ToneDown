@@ -41,25 +41,25 @@ export function CalmReminder() {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl border border-slate-700 bg-slate-900/95 p-6 text-center shadow-2xl">
-        <h3 className="text-3xl font-bold text-emerald-300">{copy.title}</h3>
-        <p className="mt-3 text-sm text-slate-200">{copy.description}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-sunken/80 p-6 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-sheet border border-line bg-overlay/95 p-6 text-center shadow-e3">
+        <h3 className="font-display text-3xl font-bold text-brand">{copy.title}</h3>
+        <p className="mt-3 text-sm text-ink-secondary">{copy.description}</p>
 
         <div className="my-6 flex justify-center">
           <div
-            className="h-28 w-28 rounded-full bg-emerald-400/30 shadow-[0_0_50px_rgba(16,185,129,0.35)] animate-pulse"
+            className="h-28 w-28 rounded-full bg-brand/30 shadow-[0_0_50px_var(--brand)] animate-pulse"
             style={{ animationDuration: '4s' }}
           />
         </div>
 
-        <p className="text-base text-slate-300">
-          {copy.countdown}: <span className="font-semibold text-emerald-300">{countdown}s</span>
+        <p className="text-base text-ink-secondary">
+          {copy.countdown}: <span className="font-display font-semibold tabular-nums text-brand">{countdown}s</span>
         </p>
 
         <button
           type="button"
-          className="mt-5 w-full rounded-full bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+          className="mt-5 w-full rounded-full bg-accent-fill px-4 py-3 text-sm font-semibold text-on-accent transition hover:brightness-110"
           onClick={() => {
             sessionStore.dispatch({ type: 'INTERVENTION_ACKNOWLEDGED', at: Date.now() })
           }}

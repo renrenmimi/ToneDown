@@ -1,12 +1,35 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0a1422" />
+    <meta
+      name="description"
+      content="ToneDown — live tone coaching for heated conversations. Hear yourself the way they do."
+    />
     <title>ToneDown</title>
+    <script>
+      // Pre-paint theme bootstrap: stored choice -> OS preference -> dark.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('tonedown.theme.v1')
+          var theme =
+            stored === 'dark' || stored === 'light'
+              ? stored
+              : window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark'
+          document.documentElement.dataset.theme = theme
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f8f9' : '#0a1422')
+        } catch (e) {
+          /* default dark stands */
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

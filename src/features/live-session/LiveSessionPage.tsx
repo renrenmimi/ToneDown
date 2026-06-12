@@ -20,6 +20,9 @@ import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { useLocale } from '@/shared/i18n/localeContext'
+import { toneVar } from './lib/toneVar'
+import { Aurora } from '@/shared/ui/Aurora'
+import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
   AppLanguage,
   EmotionHistoryEntry,
@@ -38,10 +41,10 @@ const EMOTION_EMOJI: Record<EmotionLevel, string> = {
 }
 
 const EMOTION_DOT_CLASS: Record<EmotionLevel, string> = {
-  calm: 'bg-emerald-400',
-  elevated: 'bg-yellow-300',
-  heated: 'bg-orange-400',
-  critical: 'bg-red-500',
+  calm: 'bg-tone-calm',
+  elevated: 'bg-tone-tense',
+  heated: 'bg-tone-heated',
+  critical: 'bg-tone-hostile',
 }
 
 const formatDuration = (seconds: number): string => {
@@ -94,7 +97,7 @@ function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) 
 
   if (recent.length < 2) {
     return (
-      <div className="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-4 text-sm text-slate-400">
+      <div className="rounded-card border border-line bg-raised/80 p-4 text-sm text-ink-muted">
         {emptyLabel}
       </div>
     )
@@ -125,35 +128,35 @@ function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) 
   const timeLabels = language === 'zh-CN' ? ['5分钟前', '现在'] : ['5m ago', 'now']
 
   return (
-    <div className="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-3 shadow-lg">
+    <div className="rounded-card border border-line bg-raised/80 p-3 shadow-e2">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-44 w-full">
         <rect
           x={padding}
           y={scoreToY(30)}
           width={chartWidth}
           height={scoreToY(0) - scoreToY(30)}
-          fill="rgba(16,185,129,0.12)"
+          fill="var(--tone-calm)" fillOpacity={0.1}
         />
         <rect
           x={padding}
           y={scoreToY(55)}
           width={chartWidth}
           height={scoreToY(31) - scoreToY(55)}
-          fill="rgba(250,204,21,0.12)"
+          fill="var(--tone-tense)" fillOpacity={0.1}
         />
         <rect
           x={padding}
           y={scoreToY(75)}
           width={chartWidth}
           height={scoreToY(56) - scoreToY(75)}
-          fill="rgba(249,115,22,0.12)"
+          fill="var(--tone-heated)" fillOpacity={0.1}
         />
         <rect
           x={padding}
           y={scoreToY(100)}
           width={chartWidth}
           height={scoreToY(76) - scoreToY(100)}
-          fill="rgba(239,68,68,0.14)"
+          fill="var(--tone-hostile)" fillOpacity={0.12}
         />
 
         <line
@@ -161,15 +164,15 @@ function EmotionTimeline({ history, language, emptyLabel, now }: TimelineProps) 
           y1={scoreToY(50)}
           x2={padding + chartWidth}
           y2={scoreToY(50)}
-          stroke="rgba(148,163,184,0.25)"
+          stroke="var(--border-strong)" strokeOpacity={0.5}
           strokeDasharray="3 4"
         />
 
-        <path d={path} fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" />
-        <circle cx={latest.x} cy={latest.y} r="4.2" fill="#10B981" />
+        <path d={path} fill="none" stroke="var(--tone-calm)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx={latest.x} cy={latest.y} r="4.2" fill="var(--tone-calm)" />
       </svg>
 
-      <div className="mt-1 flex items-center justify-between px-1 text-xs text-slate-400">
+      <div className="mt-1 flex items-center justify-between px-1 text-xs text-ink-muted">
         <span>{timeLabels[0]}</span>
         <span>{timeLabels[1]}</span>
       </div>
@@ -269,21 +272,24 @@ function LiveSessionPage() {
   }, [emotionLevel, history, transcript])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+    <div className="min-h-screen text-ink">
+      <Aurora />
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-6">
-        <header className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-xl backdrop-blur">
+        <header className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-emerald-300">ToneDown</h1>
-              <p className="mt-1 text-sm font-medium text-slate-300">{copy.subtitle}</p>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-brand">ToneDown</h1>
+              <p className="mt-1 text-sm font-medium text-ink-secondary">{copy.subtitle}</p>
             </div>
-            <div className="rounded-full border border-slate-600 bg-slate-800/80 p-1">
+            <div className="flex items-center gap-2">
+            <ThemeToggle ariaLabel={copy.themeToggle} />
+            <div className="rounded-full border border-line-strong bg-sunken/80 p-1">
               <button
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                   language === 'zh-CN'
-                    ? 'bg-emerald-500 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
+                    ? 'bg-brand text-surface'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('zh-CN')}
               >
@@ -293,47 +299,48 @@ function LiveSessionPage() {
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                   language === 'en-US'
-                    ? 'bg-emerald-500 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
+                    ? 'bg-brand text-surface'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('en-US')}
               >
                 EN
               </button>
             </div>
+            </div>
           </div>
-          <p className="mt-3 text-sm text-slate-300">{copy.intro}</p>
+          <p className="mt-3 text-sm text-ink-secondary">{copy.intro}</p>
         </header>
 
         {!isBrowserSupported && (
-          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          <div className="mb-4 rounded-card border border-accent/30 bg-accent/10 p-4 text-sm text-ink">
             {copy.notSupported}
           </div>
         )}
 
         {permissionDenied && (
-          <div className="mb-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">
+          <div className="mb-4 rounded-card border border-accent/30 bg-accent/10 p-4 text-sm text-ink">
             {copy.permissionDenied}
           </div>
         )}
 
         {sttUnavailable && (
-          <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <div className="mb-4 rounded-card border border-accent/30 bg-accent/10 p-4 text-sm text-ink">
             {copy.sttUnavailable}
           </div>
         )}
 
-        <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
-          <div className="mb-3 text-center text-sm text-slate-400">
+        <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
+          <div className="mb-3 text-center text-sm text-ink-muted">
             {isMonitoring ? `${copy.listeningTime}: ${formatDuration(elapsedSeconds)}` : ''}
           </div>
           <div className="flex justify-center">
             <button
               type="button"
-              className={`flex h-36 w-36 items-center justify-center rounded-full text-base font-bold text-slate-950 shadow-xl transition-transform active:scale-95 ${
+              className={`flex h-36 w-36 items-center justify-center rounded-full text-base font-bold shadow-e3 transition-transform active:scale-95 ${
                 isMonitoring
-                  ? 'bg-red-500 text-white animate-pulse'
-                  : 'bg-emerald-500 hover:bg-emerald-400'
+                  ? 'border border-line-strong bg-raised text-ink animate-pulse'
+                  : 'bg-accent-fill text-on-accent hover:brightness-110'
               }`}
               onClick={toggleMonitoring}
               disabled={!isBrowserSupported}
@@ -343,8 +350,8 @@ function LiveSessionPage() {
           </div>
         </section>
 
-        <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
-          <p className="mb-4 text-sm font-medium text-slate-300">{copy.dashboard}</p>
+        <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
+          <p className="mb-4 text-sm font-medium text-ink-secondary">{copy.dashboard}</p>
 
           <div className="relative mx-auto flex h-56 w-56 items-center justify-center">
             <svg className="h-full w-full -rotate-90" viewBox="0 0 220 220">
@@ -352,7 +359,7 @@ function LiveSessionPage() {
                 cx="110"
                 cy="110"
                 r={ringProgress.radius}
-                stroke="rgba(100,116,139,0.3)"
+                stroke="var(--border-subtle)"
                 strokeWidth="16"
                 fill="none"
               />
@@ -360,7 +367,7 @@ function LiveSessionPage() {
                 cx="110"
                 cy="110"
                 r={ringProgress.radius}
-                stroke={frame.emotionColor}
+                stroke={toneVar(emotionLevel)}
                 strokeWidth="16"
                 fill="none"
                 strokeLinecap="round"
@@ -371,19 +378,19 @@ function LiveSessionPage() {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-3xl font-black text-slate-100">{score}</p>
+              <p className="font-display text-4xl font-bold tabular-nums text-ink">{score}</p>
               <p className="mt-1 text-xl">{EMOTION_EMOJI[emotionLevel]}</p>
-              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-slate-300">
+              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-ink-secondary">
                 {emotionLevel}
               </p>
             </div>
           </div>
 
-          <p className="mt-2 text-center text-sm text-slate-300">{copy.emotionState[emotionLevel]}</p>
+          <p className="mt-2 text-center text-sm text-ink-secondary">{copy.emotionState[emotionLevel]}</p>
 
           {isMonitoring && frame.fusionMode === 'llm' && frame.llmTone && (
-            <p className="mt-1 text-center text-xs text-slate-400">
-              <span className="font-semibold text-violet-300">{frame.llmTone.tone}</span>
+            <p className="mt-1 text-center text-xs text-ink-muted">
+              <span className="font-semibold text-brand">{frame.llmTone.tone}</span>
               {frame.llmTone.rationale ? ` · ${frame.llmTone.rationale}` : ''}
             </p>
           )}
@@ -399,21 +406,21 @@ function LiveSessionPage() {
           </div>
         </section>
 
-        <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
+        <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-300">{copy.transcript}</p>
+            <p className="text-sm font-medium text-ink-secondary">{copy.transcript}</p>
             {isMonitoring && (
               <span className="flex items-center gap-1.5">
                 {engines.analysis === 'rules' && (
-                  <span className="rounded-full border border-slate-500/50 bg-slate-700/40 px-2 py-0.5 text-xs font-semibold text-slate-300">
+                  <span className="rounded-full border border-line-strong bg-sunken px-2 py-0.5 text-xs font-semibold text-ink-secondary">
                     {copy.rulesMode}
                   </span>
                 )}
                 <span
                   className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
                     engines.stt === 'groq'
-                      ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
-                      : 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+                      ? 'border-brand/40 bg-brand/10 text-brand'
+                      : 'border-accent/40 bg-accent/10 text-accent'
                   }`}
                 >
                   {engines.stt === 'groq' ? copy.engineGroq : copy.engineBrowser}
@@ -424,10 +431,10 @@ function LiveSessionPage() {
 
           <div
             ref={transcriptContainerRef}
-            className="max-h-56 min-h-40 overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950/60 p-3"
+            className="max-h-56 min-h-40 overflow-y-auto rounded-card border border-line bg-sunken/60 p-3"
           >
             {transcriptWithEmotion.length === 0 && !interim && (
-              <p className="text-sm text-slate-500">{copy.emptyTranscript}</p>
+              <p className="text-sm text-ink-muted">{copy.emptyTranscript}</p>
             )}
 
             <div className="space-y-3">
@@ -436,8 +443,8 @@ function LiveSessionPage() {
               ))}
 
               {interim && (
-                <div className="flex items-start gap-2 text-sm italic text-slate-400">
-                  <span className="mt-1 block h-2 w-2 rounded-full bg-slate-500" />
+                <div className="flex items-start gap-2 text-sm italic text-ink-muted">
+                  <span className="mt-1 block h-2 w-2 rounded-full bg-ink-muted" />
                   <p>
                     {copy.interim}: {interim}
                   </p>
@@ -447,16 +454,16 @@ function LiveSessionPage() {
           </div>
         </section>
 
-        <section className="mb-5 rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-lg">
-          <p className="mb-3 text-sm font-medium text-slate-300">{copy.toneSuggestion}</p>
+        <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
+          <p className="mb-3 text-sm font-medium text-ink-secondary">{copy.toneSuggestion}</p>
           {frame.highRiskKeywords.length > 0 ? (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
-              <p className="text-xs text-red-200">{copy.toneSuggestionDetected}</p>
+            <div className="rounded-card border border-tone-hostile/30 bg-tone-hostile/10 p-3">
+              <p className="text-xs text-tone-hostile">{copy.toneSuggestionDetected}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {frame.highRiskKeywords.map((keyword) => (
                   <span
                     key={keyword}
-                    className="rounded-full border border-red-400/40 bg-red-500/10 px-2 py-1 text-xs text-red-100"
+                    className="rounded-full border border-tone-hostile/40 bg-tone-hostile/10 px-2 py-1 text-xs text-ink"
                   >
                     {keyword}
                   </span>
@@ -464,15 +471,15 @@ function LiveSessionPage() {
               </div>
             </div>
           ) : (
-            <p className="rounded-2xl border border-slate-700 bg-slate-950/50 p-3 text-sm text-slate-400">
+            <p className="rounded-card border border-line bg-sunken/50 p-3 text-sm text-ink-muted">
               {copy.toneSuggestionEmpty}
             </p>
           )}
-          <p className="mt-3 text-xs text-slate-400">{copy.toneSuggestionHint}</p>
+          <p className="mt-3 text-xs text-ink-muted">{copy.toneSuggestionHint}</p>
         </section>
 
         <section className="mb-5">
-          <p className="mb-3 text-sm font-medium text-slate-300">{copy.timeline}</p>
+          <p className="mb-3 text-sm font-medium text-ink-secondary">{copy.timeline}</p>
           <EmotionTimeline
             history={history}
             language={language}
@@ -481,7 +488,7 @@ function LiveSessionPage() {
           />
         </section>
 
-        <footer className="px-2 text-center text-xs text-slate-500">{copy.disclaimer}</footer>
+        <footer className="px-2 text-center text-xs text-ink-muted">{copy.disclaimer}</footer>
       </div>
 
       <SessionServices />
@@ -502,10 +509,10 @@ interface MetricCardProps {
 
 function MetricCard({ label, value, description }: MetricCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-950/60 p-3">
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
-      {description ? <p className="mt-1 text-xs text-slate-400">{description}</p> : null}
+    <div className="rounded-card border border-line bg-sunken/60 p-3">
+      <p className="text-xs text-ink-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold tabular-nums text-ink">{value}</p>
+      {description ? <p className="mt-1 text-xs text-ink-muted">{description}</p> : null}
     </div>
   )
 }
@@ -516,7 +523,7 @@ interface TranscriptItemProps {
 
 function TranscriptItem({ entry }: TranscriptItemProps) {
   return (
-    <div className="flex items-start gap-2 text-sm text-slate-200">
+    <div className="flex items-start gap-2 text-sm text-ink">
       <span className={`mt-1 block h-2.5 w-2.5 rounded-full ${EMOTION_DOT_CLASS[entry.emotionLevel]}`} />
       <p>{entry.text}</p>
     </div>

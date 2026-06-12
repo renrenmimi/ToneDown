@@ -3,6 +3,7 @@ import type { EmotionLevel, SpeedLevel } from '@/types/app'
 
 interface LiveSessionStrings {
   subtitle: string
+  themeToggle: string
   intro: string
   start: string
   stop: string
@@ -53,6 +54,7 @@ interface LiveSessionStrings {
 export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSessionStrings>({
   'zh-CN': {
     subtitle: '情侣语气检测助手',
+    themeToggle: '切换深浅色主题',
     intro: '实时检测你的语气强度，帮助你把对话拉回冷静区。',
     start: '开始检测',
     stop: '停止',
@@ -111,6 +113,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
   },
   'en-US': {
     subtitle: 'Couple Tone Tracking Assistant',
+    themeToggle: 'Toggle light/dark theme',
     intro: 'Track your tone in real time and bring conversations back to calm.',
     start: 'Start Detection',
     stop: 'Stop',
