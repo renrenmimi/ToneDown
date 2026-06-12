@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { transcribe, toLanguageHint } from '../lib/apiClient'
-import { CircuitBreaker } from '@/shared/circuitBreaker'
-import { recordLatency } from '@/shared/latencyLog'
+import { getBreaker } from '@/shared/llm/breakers'
+import { toLanguageHint, transcribeEndpoint } from '@/shared/llm/endpoints'
 import {
   filterTranscript,
   isSilentSegment,
@@ -56,9 +55,6 @@ export function useGroqTranscriber({
   const [degraded, setDegraded] = useState(false)
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null)
 
-  // Survives stop/start so a flapping /api/transcribe stays backed off
-  // (open -> half-open probe, backoff doubling 30s -> 5min).
-  const breakerRef = useRef(new CircuitBreaker())
   const mimeType = useMemo(() => pickMimeType(), [])
 
   // No MediaRecorder support (Safari < 14, etc.) means permanent fallback;
@@ -88,7 +84,9 @@ export function useGroqTranscriber({
       recorders: new Set<MediaRecorder>(),
       timers: new Set<ReturnType<typeof setTimeout>>(),
     }
-    const breaker = breakerRef.current
+    // Module-scoped named breaker: survives stop/start so a flapping
+    // /api/transcribe stays backed off (half-open probes, 30s -> 5min).
+    const breaker = getBreaker('transcribe')
 
     const setTimer = (fn: () => void, ms: number) => {
       const id = setTimeout(() => {
@@ -154,14 +152,15 @@ export function useGroqTranscriber({
 
       const uploadStartedAt = performance.now()
       try {
-        const result = await transcribe(blob, blob.type, toLanguageHint(languageRef.current))
+        const result = await transcribeEndpoint.call({
+          audio: blob,
+          mime: blob.type,
+          langHint: toLanguageHint(languageRef.current),
+        })
         if (!session.active) {
           return
         }
-        const elapsed = performance.now() - uploadStartedAt
-        setLastLatencyMs(Math.round(elapsed))
-        recordLatency('transcribe', elapsed)
-        breaker.recordSuccess()
+        setLastLatencyMs(Math.round(performance.now() - uploadStartedAt))
 
         if (isProbe) {
           recoverFromProbe()
@@ -176,7 +175,6 @@ export function useGroqTranscriber({
         if (!session.active) {
           return
         }
-        breaker.recordFailure()
         if (isProbe) {
           scheduleProbe()
           return

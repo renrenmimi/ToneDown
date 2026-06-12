@@ -2,7 +2,13 @@
 // Samples are kept on window.__toneDownLatency so both DevTools and automated
 // runs can read them; production builds compile this away to a no-op.
 
-type LatencyStage = 'transcribe' | 'analyze' | 'rewrite'
+export type LatencyStage =
+  | 'transcribe'
+  | 'analyze'
+  | 'rewrite'
+  | 'debrief'
+  | 'sparring'
+  | 'gym'
 
 interface LatencyWindow extends Window {
   __toneDownLatency?: Record<LatencyStage, number[]>
@@ -12,6 +18,9 @@ const samples: Record<LatencyStage, number[]> = {
   transcribe: [],
   analyze: [],
   rewrite: [],
+  debrief: [],
+  sparring: [],
+  gym: [],
 }
 
 export function recordLatency(stage: LatencyStage, ms: number): void {

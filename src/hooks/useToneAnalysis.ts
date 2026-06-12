@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { analyze } from '../lib/apiClient'
-import { CircuitBreaker } from '@/shared/circuitBreaker'
-import { recordLatency } from '@/shared/latencyLog'
+import { getBreaker } from '@/shared/llm/breakers'
+import { analyzeEndpoint } from '@/shared/llm/endpoints'
 import type { AppLanguage, LlmToneResult, TranscriptEntry } from '../types/app'
 
 // Runs on its own cadence (each newly finalized transcript entry), decoupled
@@ -34,8 +33,6 @@ export function useToneAnalysis({
   const languageRef = useRef(language)
   const lastSeenTimestampRef = useRef(0)
   const inFlightRef = useRef(false)
-  // The breaker survives stop/start: a flapping endpoint stays backed off.
-  const breakerRef = useRef(new CircuitBreaker())
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -67,11 +64,10 @@ export function useToneAnalysis({
         return
       }
 
-      const breaker = breakerRef.current
       const now = Date.now()
-      // While open, entries keep arriving but only the post-backoff one
-      // becomes the half-open probe.
-      if (!breaker.canAttempt(now)) {
+      // While the breaker is open, entries keep arriving but only the
+      // post-backoff one becomes the half-open probe (endpoint admits it).
+      if (!analyzeEndpoint.canAttempt()) {
         return
       }
 
@@ -88,18 +84,15 @@ export function useToneAnalysis({
         .map((entry) => entry.text)
 
       inFlightRef.current = true
-      const startedAt = performance.now()
 
-      void analyze({ text, context, language: languageRef.current })
+      void analyzeEndpoint
+        .call({ text, context, language: languageRef.current })
         .then((result) => {
-          recordLatency('analyze', performance.now() - startedAt)
-          breaker.recordSuccess()
           setAvailable(true)
           setLatest({ ...result, at: Date.now() })
         })
         .catch(() => {
-          breaker.recordFailure()
-          setAvailable(breaker.state === 'closed')
+          setAvailable(getBreaker('analyze').state === 'closed')
         })
         .finally(() => {
           inFlightRef.current = false
