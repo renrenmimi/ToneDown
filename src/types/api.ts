@@ -35,7 +35,9 @@ export interface AnalyzeResponse {
 }
 
 export interface RewriteRequest {
-  /** The flagged hostile utterance to rephrase. */
+  /** 'rewrite' (default): constructive rephrasing; 'grounding': one calming line for the breathing guide. */
+  kind?: 'rewrite' | 'grounding'
+  /** The flagged hostile utterance to rephrase (grounding: recent context line). */
   utterance: string
   /** Up to 10 prior utterances, oldest first. */
   context?: string[]

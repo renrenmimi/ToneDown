@@ -3,6 +3,7 @@ import type { EmotionLevel, SpeedLevel } from '@/types/app'
 
 interface LiveSessionStrings {
   subtitle: string
+  themeToggle: string
   intro: string
   start: string
   stop: string
@@ -17,8 +18,13 @@ interface LiveSessionStrings {
   toneSuggestionHint: string
   toneSuggestionEmpty: string
   toneSuggestionDetected: string
-  timeline: string
-  timelineEmpty: string
+  ribbon: {
+    label: string
+    now: string
+    flagged: string
+    offered: string
+    close: string
+  }
   notSupported: string
   permissionDenied: string
   metrics: {
@@ -36,23 +42,32 @@ interface LiveSessionStrings {
   interim: string
   emptyTranscript: string
   emotionState: Record<EmotionLevel, string>
+  gauge: {
+    volumeRing: string
+    rateRing: string
+    semanticRing: string
+    bandWord: Record<EmotionLevel, string>
+  }
   disclaimer: string
   suggestion: {
     original: string
     suggestion: string
     aiBadge: string
   }
-  calmReminder: {
+  breath: {
     title: string
-    description: string
-    button: string
-    countdown: string
+    inhale: string
+    hold: string
+    exhale: string
+    steady: string
+    fallback: string
   }
 }
 
 export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSessionStrings>({
   'zh-CN': {
     subtitle: '情侣语气检测助手',
+    themeToggle: '切换深浅色主题',
     intro: '实时检测你的语气强度，帮助你把对话拉回冷静区。',
     start: '开始检测',
     stop: '停止',
@@ -64,11 +79,16 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
     rulesMode: 'LLM 离线 · 规则模式',
     toneSuggestion: 'AI 语气建议',
-    toneSuggestionHint: '检测到高危措辞时，下方会自动弹出替代表达卡片。',
+    toneSuggestionHint: '这句有点冲哦？下方会自动递上一个更温和的说法。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
     toneSuggestionDetected: '检测到的关键词',
-    timeline: '情绪变化时间线（最近 5 分钟）',
-    timelineEmpty: '开始说话后，这里会出现情绪变化曲线。',
+    ribbon: {
+      label: '本次对话时间线（最近 10 分钟）',
+      now: '现在',
+      flagged: '被标记的瞬间',
+      offered: '当时建议的说法',
+      close: '关闭',
+    },
     notSupported: '请使用 Chrome 或 Edge 浏览器以获得最佳体验',
     permissionDenied: '麦克风权限被拒绝，请在浏览器设置中允许麦克风后重试。',
     metrics: {
@@ -89,12 +109,18 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     },
     speedUnit: '字/分',
     interim: '识别中',
-    emptyTranscript: '还没有识别到文本，开始说话后会实时显示。',
+    emptyTranscript: '说点什么吧——我们洗耳恭听（也只是听听而已）。',
     emotionState: {
       calm: '一切平和',
       elevated: '语气有些激动',
       heated: '情绪正在升温',
       critical: '需要冷静一下',
+    },
+    gauge: {
+      volumeRing: '音量环 — 你现在听起来有多响',
+      rateRing: '语速环 — 你说话有多快',
+      semanticRing: '语义环 — AI 听出的敌意强度',
+      bandWord: { calm: '平和', elevated: '紧绷', heated: '升温', critical: '过激' },
     },
     disclaimer: '本工具仅为沟通辅助，不提供心理咨询服务',
     suggestion: {
@@ -102,15 +128,18 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: '建议',
       aiBadge: 'AI 建议',
     },
-    calmReminder: {
-      title: '深呼吸 🌊',
-      description: '你的语气正在升高，让我们暂停 30 秒',
-      button: '我已经冷静了',
-      countdown: '剩余',
+    breath: {
+      title: '我们一起深呼吸一次',
+      inhale: '吸气',
+      hold: '屏住',
+      exhale: '缓缓呼出',
+      steady: '我稳住了',
+      fallback: '一次呼吸之后，话会说得更好。',
     },
   },
   'en-US': {
     subtitle: 'Couple Tone Tracking Assistant',
+    themeToggle: 'Toggle light/dark theme',
     intro: 'Track your tone in real time and bring conversations back to calm.',
     start: 'Start Detection',
     stop: 'Stop',
@@ -123,11 +152,16 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     rulesMode: 'LLM offline · rules mode',
     toneSuggestion: 'AI Tone Suggestions',
     toneSuggestionHint:
-      'When high-risk phrases are detected, a replacement card appears automatically.',
+      'That one came in a little hot? A calmer take appears down here automatically.',
     toneSuggestionEmpty: 'No high-risk keyword detected at the moment.',
     toneSuggestionDetected: 'Detected keywords',
-    timeline: 'Emotion Timeline (Last 5 Minutes)',
-    timelineEmpty: 'The emotion curve will appear once speech is detected.',
+    ribbon: {
+      label: 'Session timeline (last 10 minutes)',
+      now: 'now',
+      flagged: 'Flagged moment',
+      offered: 'Offered instead',
+      close: 'Close',
+    },
     notSupported: 'Please use Chrome or Edge for the best experience',
     permissionDenied: 'Microphone access was denied. Please allow it in browser settings.',
     metrics: {
@@ -148,12 +182,18 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     },
     speedUnit: 'wpm',
     interim: 'Listening',
-    emptyTranscript: 'No transcript yet. Start speaking to see live text.',
+    emptyTranscript: "Say something — we're all ears (and only ears).",
     emotionState: {
       calm: 'Everything is calm',
       elevated: 'Tone is getting tense',
       heated: 'Emotion is rising',
       critical: 'Time to cool down',
+    },
+    gauge: {
+      volumeRing: 'Loudness — how loud you sound right now',
+      rateRing: 'Pace — how fast you are speaking',
+      semanticRing: 'Meaning — AI-heard hostility intensity',
+      bandWord: { calm: 'Calm', elevated: 'Tense', heated: 'Heated', critical: 'Hostile' },
     },
     disclaimer: 'This tool is for communication support only and is not counseling.',
     suggestion: {
@@ -161,11 +201,13 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: 'Suggestion',
       aiBadge: 'AI suggestion',
     },
-    calmReminder: {
-      title: 'Take a deep breath 🌊',
-      description: 'Your tone is rising. Let us pause for 30 seconds.',
-      button: "I'm calm now",
-      countdown: 'Left',
+    breath: {
+      title: "Let's take one together",
+      inhale: 'Breathe in',
+      hold: 'Hold',
+      exhale: 'Let it go',
+      steady: "I'm steady",
+      fallback: "You're one breath away from a better sentence.",
     },
   },
 })

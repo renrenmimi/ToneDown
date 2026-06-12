@@ -3,7 +3,7 @@ import type { RewriteRequest } from '../src/types/api.js'
 import { contentLengthWithin, getClientIp, logRequest, requirePost, sendError } from './_lib/http.js'
 import { checkRateLimit } from './_lib/ratelimit.js'
 import { chatJSON, UpstreamError } from './_lib/groq.js'
-import { buildRewriteUserMessage, CORRECTIVE_MESSAGE, REWRITE_SYSTEM_PROMPT } from './_lib/prompts.js'
+import { buildRewriteUserMessage, CORRECTIVE_MESSAGE, GROUNDING_SYSTEM_PROMPT, REWRITE_SYSTEM_PROMPT } from './_lib/prompts.js'
 import { parseRewriteJson } from './_lib/validate.js'
 
 const ROUTE = 'rewrite'
@@ -17,12 +17,18 @@ const RETRY_TIMEOUT_MS = 6_000
 
 export const config = { maxDuration: 30 }
 
-function parseRequestBody(body: unknown): { utterance: string; context: string[] } | null {
+function parseRequestBody(
+  body: unknown,
+): { utterance: string; context: string[]; kind: 'rewrite' | 'grounding' } | null {
   if (typeof body !== 'object' || body === null) {
     return null
   }
   const candidate = body as Partial<RewriteRequest>
 
+  const kind = candidate.kind ?? 'rewrite'
+  if (kind !== 'rewrite' && kind !== 'grounding') {
+    return null
+  }
   if (typeof candidate.utterance !== 'string') {
     return null
   }
@@ -41,7 +47,7 @@ function parseRequestBody(body: unknown): { utterance: string; context: string[]
       .map((entry) => entry.slice(0, MAX_CONTEXT_ENTRY_CHARS))
   }
 
-  return { utterance, context }
+  return { utterance, context, kind }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -70,13 +76,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   try {
+    const grounding = parsed.kind === 'grounding'
     const result = await chatJSON({
       messages: [
-        { role: 'system', content: REWRITE_SYSTEM_PROMPT },
+        { role: 'system', content: grounding ? GROUNDING_SYSTEM_PROMPT : REWRITE_SYSTEM_PROMPT },
         { role: 'user', content: buildRewriteUserMessage(parsed.utterance, parsed.context) },
       ],
       temperature: 0.7,
-      maxTokens: 200,
+      maxTokens: grounding ? 60 : 200,
       validate: (raw) => parseRewriteJson(raw, parsed.utterance),
       correctiveMessage: CORRECTIVE_MESSAGE,
       timeoutMs: UPSTREAM_TIMEOUT_MS,

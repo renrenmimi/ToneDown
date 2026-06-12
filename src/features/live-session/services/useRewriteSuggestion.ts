@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { rewriteEndpoint } from '@/shared/llm/endpoints'
+import { sessionStore } from '../machine/sessionStore'
 import type { AppLanguage, TranscriptEntry } from '@/types/app'
 
 // Sustained hostility mirrors CalmReminder's trigger (score >= 70 held 5s);
@@ -97,6 +98,10 @@ export function useRewriteSuggestion({
         .call({ utterance, context, language: languageRef.current })
         .then((result) => {
           setSuggestion({ original: utterance, rewrite: result.rewrite })
+          sessionStore.dispatch({
+            type: 'REWRITE_OFFERED',
+            moment: { at: Date.now(), quote: utterance, rewrite: result.rewrite },
+          })
         })
         .catch(() => {
           // Leave suggestion null/stale: ToneSuggestion's keyword map takes over.
