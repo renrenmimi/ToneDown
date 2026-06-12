@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppLanguage, TranscriptEntry } from '../types/app'
 
-const MAX_TRANSCRIPT_ENTRIES = 600
-
 interface SpeechRecognitionAlternativeLike {
   transcript: string
 }
@@ -46,18 +44,21 @@ interface SpeechRecognitionWindow extends Window {
   SpeechRecognition?: SpeechRecognitionCtor
 }
 
+interface UseSpeechRecognitionOptions {
+  /** Controlled by the app so the Groq STT path shares the same language. */
+  language: AppLanguage
+  /** Finalized utterances, destined for the shared transcript stream. */
+  onFinalEntries: (entries: TranscriptEntry[]) => void
+  onInterim: (text: string) => void
+}
+
 interface UseSpeechRecognitionResult {
-  transcript: TranscriptEntry[]
-  interimTranscript: string
   isRecognizing: boolean
   isSupported: boolean
   error: string | null
   start: () => boolean
   stop: () => void
-  language: AppLanguage
-  setLanguage: (language: AppLanguage) => void
   clearError: () => void
-  clearTranscript: () => void
 }
 
 const getSpeechRecognitionCtor = (): SpeechRecognitionCtor | null => {
@@ -65,15 +66,28 @@ const getSpeechRecognitionCtor = (): SpeechRecognitionCtor | null => {
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
 }
 
-export function useSpeechRecognition(): UseSpeechRecognitionResult {
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
-  const [interimTranscript, setInterimTranscript] = useState('')
+/**
+ * Web Speech API engine. Since the Groq Whisper pipeline became the primary
+ * STT path this only runs as the automatic fallback; results flow into the
+ * shared transcript stream via callbacks instead of internal state.
+ */
+export function useSpeechRecognition({
+  language,
+  onFinalEntries,
+  onInterim,
+}: UseSpeechRecognitionOptions): UseSpeechRecognitionResult {
   const [isRecognizing, setIsRecognizing] = useState(false)
-  const [language, setLanguage] = useState<AppLanguage>('zh-CN')
   const [error, setError] = useState<string | null>(null)
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const shouldRestartRef = useRef(false)
+  const onFinalEntriesRef = useRef(onFinalEntries)
+  const onInterimRef = useRef(onInterim)
+
+  useEffect(() => {
+    onFinalEntriesRef.current = onFinalEntries
+    onInterimRef.current = onInterim
+  }, [onFinalEntries, onInterim])
 
   const isSupported = useMemo(() => Boolean(getSpeechRecognitionCtor()), [])
 
@@ -102,21 +116,16 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
 
       if (finalSegments.length > 0) {
         const now = Date.now()
-        const entries = finalSegments.map((text, index) => ({
-          text,
-          timestamp: now + index,
-        }))
-
-        setTranscript((prev) => {
-          const next = [...prev, ...entries]
-          if (next.length > MAX_TRANSCRIPT_ENTRIES) {
-            return next.slice(next.length - MAX_TRANSCRIPT_ENTRIES)
-          }
-          return next
-        })
+        onFinalEntriesRef.current(
+          finalSegments.map((text, index) => ({
+            text,
+            timestamp: now + index,
+            source: 'browser' as const,
+          })),
+        )
       }
 
-      setInterimTranscript(interim.trim())
+      onInterimRef.current(interim.trim())
     }
 
     recognition.onerror = (event) => {
@@ -133,7 +142,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
 
     recognition.onend = () => {
       setIsRecognizing(false)
-      setInterimTranscript('')
+      onInterimRef.current('')
 
       if (!shouldRestartRef.current || !recognitionRef.current) {
         return
@@ -198,7 +207,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
 
   const stop = useCallback(() => {
     shouldRestartRef.current = false
-    setInterimTranscript('')
+    onInterimRef.current('')
     setIsRecognizing(false)
 
     if (recognitionRef.current) {
@@ -212,11 +221,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
 
   const clearError = useCallback(() => {
     setError(null)
-  }, [])
-
-  const clearTranscript = useCallback(() => {
-    setTranscript([])
-    setInterimTranscript('')
   }, [])
 
   useEffect(() => {
@@ -250,16 +254,11 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
   }, [])
 
   return {
-    transcript,
-    interimTranscript,
     isRecognizing,
     isSupported,
     error,
     start,
     stop,
-    language,
-    setLanguage,
     clearError,
-    clearTranscript,
   }
 }
