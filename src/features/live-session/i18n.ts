@@ -79,7 +79,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
     rulesMode: 'LLM 离线 · 规则模式',
     toneSuggestion: 'AI 语气建议',
-    toneSuggestionHint: '检测到高危措辞时，下方会自动弹出替代表达卡片。',
+    toneSuggestionHint: '这句有点冲哦？下方会自动递上一个更温和的说法。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
     toneSuggestionDetected: '检测到的关键词',
     ribbon: {
@@ -109,7 +109,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     },
     speedUnit: '字/分',
     interim: '识别中',
-    emptyTranscript: '还没有识别到文本，开始说话后会实时显示。',
+    emptyTranscript: '说点什么吧——我们洗耳恭听（也只是听听而已）。',
     emotionState: {
       calm: '一切平和',
       elevated: '语气有些激动',
@@ -152,7 +152,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     rulesMode: 'LLM offline · rules mode',
     toneSuggestion: 'AI Tone Suggestions',
     toneSuggestionHint:
-      'When high-risk phrases are detected, a replacement card appears automatically.',
+      'That one came in a little hot? A calmer take appears down here automatically.',
     toneSuggestionEmpty: 'No high-risk keyword detected at the moment.',
     toneSuggestionDetected: 'Detected keywords',
     ribbon: {
@@ -182,7 +182,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     },
     speedUnit: 'wpm',
     interim: 'Listening',
-    emptyTranscript: 'No transcript yet. Start speaking to see live text.',
+    emptyTranscript: "Say something — we're all ears (and only ears).",
     emotionState: {
       calm: 'Everything is calm',
       elevated: 'Tone is getting tense',

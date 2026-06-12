@@ -243,4 +243,9 @@ body {
   :root {
     transition: none;
   }
+  /* opt-in kill switch for JS-inlined transitions (gauge needle/rings, toasts) */
+  .rm-static {
+    transition: none !important;
+    animation: none !important;
+  }
 }

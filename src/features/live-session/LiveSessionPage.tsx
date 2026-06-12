@@ -188,6 +188,7 @@ function LiveSessionPage() {
                     : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('zh-CN')}
+                aria-pressed={language === 'zh-CN'}
               >
                 中
               </button>
@@ -199,6 +200,7 @@ function LiveSessionPage() {
                     : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('en-US')}
+                aria-pressed={language === 'en-US'}
               >
                 EN
               </button>
@@ -235,7 +237,7 @@ function LiveSessionPage() {
               type="button"
               className={`flex h-36 w-36 items-center justify-center rounded-full text-base font-bold shadow-e3 transition-transform active:scale-95 ${
                 isMonitoring
-                  ? 'border border-line-strong bg-raised text-ink animate-pulse'
+                  ? 'rm-static border border-line-strong bg-raised text-ink animate-pulse'
                   : 'bg-accent-fill text-on-accent hover:brightness-110'
               }`}
               onClick={toggleMonitoring}
@@ -286,7 +288,7 @@ function LiveSessionPage() {
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-ink-secondary">{copy.transcript}</p>
             {isMonitoring && (
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5" role="status">
                 {engines.analysis === 'rules' && (
                   <span className="rounded-full border border-line-strong bg-sunken px-2 py-0.5 text-xs font-semibold text-ink-secondary">
                     {copy.rulesMode}
@@ -307,6 +309,7 @@ function LiveSessionPage() {
 
           <div
             ref={transcriptContainerRef}
+            role="log"
             className="max-h-56 min-h-40 overflow-y-auto rounded-card border border-line bg-sunken/60 p-3"
           >
             {transcriptWithEmotion.length === 0 && !interim && (

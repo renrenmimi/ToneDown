@@ -110,7 +110,7 @@ export function ToneSuggestion({ triggerKeyword, llmSuggestion = null }: ToneSug
 
   const containerClassName = useMemo(() => {
     return [
-      'fixed bottom-4 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 transform transition-all duration-300',
+      'rm-static fixed bottom-20 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 transform transition-all duration-300',
       isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none',
     ].join(' ')
   }, [isVisible])

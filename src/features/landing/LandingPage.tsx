@@ -27,6 +27,7 @@ export default function LandingPage() {
                   locale === 'zh-CN' ? 'bg-brand text-surface' : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('zh-CN')}
+                aria-pressed={locale === 'zh-CN'}
               >
                 中
               </button>
@@ -36,6 +37,7 @@ export default function LandingPage() {
                   locale === 'en-US' ? 'bg-brand text-surface' : 'text-ink-secondary hover:text-ink'
                 }`}
                 onClick={() => setLocale('en-US')}
+                aria-pressed={locale === 'en-US'}
               >
                 EN
               </button>

@@ -108,6 +108,7 @@ export function ToneGauge({
             {/* value */}
             <path
               ref={ring.id === 'volume' ? volumeArcRef : undefined}
+              className="rm-static"
               d={arcPath(ring.radius)}
               fill="none"
               stroke={ringColor[ring.id]}
@@ -144,6 +145,7 @@ export function ToneGauge({
 
         {/* fused needle: a tick riding an inner radius, sprung on score */}
         <g
+          className="rm-static"
           style={{
             transform: `rotate(${needleDeg}deg)`,
             transformOrigin: '140px 140px',
