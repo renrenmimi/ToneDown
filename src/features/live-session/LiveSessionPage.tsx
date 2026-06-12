@@ -20,7 +20,7 @@ import { useRewriteSuggestion } from './services/useRewriteSuggestion'
 import { isSpeechRecognitionSupported } from './services/useSpeechRecognition'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { useLocale } from '@/shared/i18n/localeContext'
-import { toneVar } from './lib/toneVar'
+import { ToneGauge } from './components/ToneGauge'
 import { Aurora } from '@/shared/ui/Aurora'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
@@ -32,13 +32,6 @@ import type {
 
 const TIMELINE_WINDOW_MS = 5 * 60_000
 
-
-const EMOTION_EMOJI: Record<EmotionLevel, string> = {
-  calm: '🟢',
-  elevated: '🟡',
-  heated: '🟠',
-  critical: '🔴',
-}
 
 const EMOTION_DOT_CLASS: Record<EmotionLevel, string> = {
   calm: 'bg-tone-calm',
@@ -221,12 +214,13 @@ function LiveSessionPage() {
   const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'
   const trendLabel = copy.trend[trend]
 
-  const ringProgress = useMemo(() => {
-    const radius = 86
-    const circumference = 2 * Math.PI * radius
-    const strokeOffset = circumference * (1 - score / 100)
-    return { radius, circumference, strokeOffset }
-  }, [score])
+  // Middle-ring normalization: a brisk argument pegs ~100.
+  const rateValue = Math.min(
+    100,
+    Math.round(frame.wordsPerMinute / (language === 'zh-CN' ? 3.5 : 2.4)),
+  )
+  const llmFresh =
+    frame.llmTone !== null && frame.fusionMode === 'llm' ? frame.llmTone.intensity : 0
 
   const permissionDenied = sessionError === 'MIC_PERMISSION_DENIED'
   const elapsedSeconds =
@@ -353,38 +347,14 @@ function LiveSessionPage() {
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <p className="mb-4 text-sm font-medium text-ink-secondary">{copy.dashboard}</p>
 
-          <div className="relative mx-auto flex h-56 w-56 items-center justify-center">
-            <svg className="h-full w-full -rotate-90" viewBox="0 0 220 220">
-              <circle
-                cx="110"
-                cy="110"
-                r={ringProgress.radius}
-                stroke="var(--border-subtle)"
-                strokeWidth="16"
-                fill="none"
-              />
-              <circle
-                cx="110"
-                cy="110"
-                r={ringProgress.radius}
-                stroke={toneVar(emotionLevel)}
-                strokeWidth="16"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={ringProgress.circumference}
-                strokeDashoffset={ringProgress.strokeOffset}
-                style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.5s ease' }}
-              />
-            </svg>
-
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="font-display text-4xl font-bold tabular-nums text-ink">{score}</p>
-              <p className="mt-1 text-xl">{EMOTION_EMOJI[emotionLevel]}</p>
-              <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-ink-secondary">
-                {emotionLevel}
-              </p>
-            </div>
-          </div>
+          <ToneGauge
+            score={score}
+            level={emotionLevel}
+            rateValue={rateValue}
+            semanticValue={llmFresh}
+            trendIcon={trendIcon}
+            trendLabel={trendLabel}
+          />
 
           <p className="mt-2 text-center text-sm text-ink-secondary">{copy.emotionState[emotionLevel]}</p>
 

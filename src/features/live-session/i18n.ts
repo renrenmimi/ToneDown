@@ -37,6 +37,12 @@ interface LiveSessionStrings {
   interim: string
   emptyTranscript: string
   emotionState: Record<EmotionLevel, string>
+  gauge: {
+    volumeRing: string
+    rateRing: string
+    semanticRing: string
+    bandWord: Record<EmotionLevel, string>
+  }
   disclaimer: string
   suggestion: {
     original: string
@@ -98,6 +104,12 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       heated: '情绪正在升温',
       critical: '需要冷静一下',
     },
+    gauge: {
+      volumeRing: '音量环 — 你现在听起来有多响',
+      rateRing: '语速环 — 你说话有多快',
+      semanticRing: '语义环 — AI 听出的敌意强度',
+      bandWord: { calm: '平和', elevated: '紧绷', heated: '升温', critical: '过激' },
+    },
     disclaimer: '本工具仅为沟通辅助，不提供心理咨询服务',
     suggestion: {
       original: '原话',
@@ -157,6 +169,12 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       elevated: 'Tone is getting tense',
       heated: 'Emotion is rising',
       critical: 'Time to cool down',
+    },
+    gauge: {
+      volumeRing: 'Loudness — how loud you sound right now',
+      rateRing: 'Pace — how fast you are speaking',
+      semanticRing: 'Meaning — AI-heard hostility intensity',
+      bandWord: { calm: 'Calm', elevated: 'Tense', heated: 'Heated', critical: 'Hostile' },
     },
     disclaimer: 'This tool is for communication support only and is not counseling.',
     suggestion: {
