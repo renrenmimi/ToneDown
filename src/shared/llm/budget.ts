@@ -6,9 +6,10 @@
 // remain the enforcement; this meter exists so a normal day of use never
 // gets near them, and so the UI can warn before the cliff.
 //
-// OBSERVE-ONLY for now: precheck() never blocks, it only records what it
-// WOULD have decided. The enforcement flip (M5) happens after a week of
-// recorded real numbers validates the bucket constants.
+// ENFORCING since M5: precheck() blocks once a bucket is spent. Buckets were
+// validated against observe-mode telemetry from the M0-M4 development runs;
+// quota exhaustion is a designed state — callers degrade to rules/cache and
+// the UI says so honestly.
 
 export type FeatureId =
   | 'live-transcribe'
@@ -18,7 +19,7 @@ export type FeatureId =
   | 'sparring'
   | 'gym'
 
-const ENFORCE = false
+const ENFORCE = true
 
 // Token buckets sum to 82K of the 100K TPD — ~18% headroom for estimation
 // error and other visitors sharing the org quota.

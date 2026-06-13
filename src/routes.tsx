@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Redirect, Route, Switch } from 'wouter'
+import { ErrorBoundary } from './shared/ui/ErrorBoundary'
+import { OfflineBanner } from './shared/ui/OfflineBanner'
 
 // Each feature is a lazy route chunk.
 const LandingPage = lazy(() => import('./features/landing/LandingPage'))
@@ -7,6 +9,7 @@ const LiveSessionPage = lazy(() => import('./features/live-session/LiveSessionPa
 const HistoryPage = lazy(() => import('./features/history/HistoryPage'))
 const SparringPage = lazy(() => import('./features/sparring/SparringPage'))
 const GymPage = lazy(() => import('./features/drills/GymPage'))
+const DemoPage = lazy(() => import('./features/demo/DemoPage'))
 
 function RouteFallback() {
   return <div className="min-h-screen bg-surface" aria-hidden />
@@ -14,17 +17,21 @@ function RouteFallback() {
 
 export function AppRoutes() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Switch>
+    <ErrorBoundary>
+      <OfflineBanner />
+      <Suspense fallback={<RouteFallback />}>
+        <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/app" component={LiveSessionPage} />
         <Route path="/history" component={HistoryPage} />
         <Route path="/spar" component={SparringPage} />
         <Route path="/gym" component={GymPage} />
-        <Route>
-          <Redirect to="/" />
-        </Route>
-      </Switch>
-    </Suspense>
+        <Route path="/demo" component={DemoPage} />
+          <Route>
+            <Redirect to="/" />
+          </Route>
+        </Switch>
+      </Suspense>
+    </ErrorBoundary>
   )
 }

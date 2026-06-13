@@ -61,12 +61,12 @@ export default function LandingPage() {
               >
                 {copy.ctaLive}
               </Link>
-              <a
-                href="#how"
+              <Link
+                href="/demo"
                 className="rounded-full border border-line-strong bg-raised/70 px-7 py-3 text-sm font-semibold text-ink-secondary transition hover:text-ink"
               >
-                {copy.ctaHow}
-              </a>
+                {copy.ctaDemo}
+              </Link>
             </div>
           </div>
           <ScriptedHeroGauge />

@@ -57,6 +57,15 @@ interface LiveSessionStrings {
     suggestion: string
     aiBadge: string
   }
+  onboarding: {
+    ariaLabel: string
+    skip: string
+    next: string
+    done: string
+    one: { emoji: string; title: string; body: string }
+    two: { emoji: string; title: string; body: string }
+    three: { emoji: string; title: string; body: string }
+  }
   breath: {
     title: string
     inhale: string
@@ -83,7 +92,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     engineGroq: 'Groq 语音识别',
     engineBrowser: '浏览器识别',
     sttUnavailable: '语音转写暂时不可用，仅基于音量评分。',
-    rulesMode: 'LLM 离线 · 规则模式',
+    rulesMode: 'AI 在休息 · 规则模式',
     toneSuggestion: 'AI 语气建议',
     toneSuggestionHint: '这句有点冲哦？下方会自动递上一个更温和的说法。',
     toneSuggestionEmpty: '当前未检测到高危关键词。',
@@ -134,6 +143,27 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       suggestion: '建议',
       aiBadge: 'AI 建议',
     },
+    onboarding: {
+      ariaLabel: '新手引导',
+      skip: '跳过',
+      next: '下一步',
+      done: '明白了',
+      one: {
+        emoji: '👂',
+        title: '它倾听，但从不录音',
+        body: '声音只在分析的瞬间经过，随即丢弃。历史只存在这台设备的浏览器里。麦克风只会在你按下「开始检测」时才请求。',
+      },
+      two: {
+        emoji: '🎯',
+        title: '你的语气，实时打分',
+        body: '音量、语速和 AI 语义每 2 秒融合成一个分数。深红色只代表敌意——你会很少看到它，这是刻意的。',
+      },
+      three: {
+        emoji: '🌊',
+        title: '说急了的话，可以重来',
+        body: '带刺的句子会得到一个更温和的版本；持续升温时，仪表盘会变成一次 4-7-8 呼吸练习。',
+      },
+    },
     breath: {
       title: '我们一起深呼吸一次',
       inhale: '吸气',
@@ -158,7 +188,7 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
     engineGroq: 'Groq Whisper',
     engineBrowser: 'Browser STT',
     sttUnavailable: 'Speech transcription is temporarily unavailable; scoring on volume only.',
-    rulesMode: 'LLM offline · rules mode',
+    rulesMode: 'AI resting · rules mode',
     toneSuggestion: 'AI Tone Suggestions',
     toneSuggestionHint:
       'That one came in a little hot? A calmer take appears down here automatically.',
@@ -209,6 +239,27 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       original: 'Original',
       suggestion: 'Suggestion',
       aiBadge: 'AI suggestion',
+    },
+    onboarding: {
+      ariaLabel: 'First-visit introduction',
+      skip: 'Skip',
+      next: 'Next',
+      done: 'Got it',
+      one: {
+        emoji: '👂',
+        title: 'It listens. It never records.',
+        body: 'Audio is scored in flight and discarded. Your history lives only in this browser. The mic is requested only when you press Start.',
+      },
+      two: {
+        emoji: '🎯',
+        title: 'Your tone, scored live',
+        body: 'Loudness, pace, and AI meaning fuse into one score every 2 seconds. Crimson means hostility — you will see it rarely, on purpose.',
+      },
+      three: {
+        emoji: '🌊',
+        title: 'Hot moments get a redo',
+        body: 'Spiky sentences get a calmer version; sustained heat morphs the gauge into one 4-7-8 breath.',
+      },
     },
     breath: {
       title: "Let's take one together",
