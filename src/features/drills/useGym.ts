@@ -18,19 +18,22 @@ export interface GymState {
   achievements: AchievementId[]
 }
 
-function computeStreak(records: DrillProgressRecord[], now = Date.now()): number {
+export function computeStreak(records: DrillProgressRecord[], now = Date.now()): number {
   const clearedDates = new Set(records.filter((r) => r.cleared).map((r) => r.date))
   let streak = 0
+  // Step the local CALENDAR date rather than subtracting 86_400_000ms: a
+  // spring-forward day is only 23h long, so fixed-ms arithmetic run near
+  // midnight skips a date outright and silently breaks an intact streak.
+  // setDate() works in local calendar fields and is DST-correct by definition.
+  const cursor = new Date(now)
   // Count back from today; an uncleared today doesn't break yesterday's streak.
   for (let day = 0; ; day += 1) {
-    const key = localDateKey(now - day * 86_400_000)
-    if (clearedDates.has(key)) {
+    if (clearedDates.has(localDateKey(cursor.getTime()))) {
       streak += 1
-    } else if (day === 0) {
-      continue
-    } else {
+    } else if (day > 0) {
       break
     }
+    cursor.setDate(cursor.getDate() - 1)
   }
   return streak
 }
