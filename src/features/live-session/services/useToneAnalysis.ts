@@ -56,6 +56,12 @@ export function useToneAnalysis({
   useEffect(() => {
     if (!isActive) {
       lastSeenTimestampRef.current = 0
+      // A debounce armed by the last entry before STOP would otherwise still
+      // fire and spend budget on a session the user already ended.
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
       return
     }
 

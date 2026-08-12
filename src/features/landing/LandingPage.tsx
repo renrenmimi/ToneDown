@@ -1,13 +1,12 @@
 import { Link } from 'wouter'
-import { useLocale } from '@/shared/i18n/localeContext'
 import { Aurora } from '@/shared/ui/Aurora'
+import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { ScriptedHeroGauge } from './ScriptedHeroGauge'
 import { useLandingT } from './i18n'
 
 export default function LandingPage() {
   const copy = useLandingT()
-  const { locale, setLocale } = useLocale()
 
   return (
     <div className="min-h-screen text-ink">
@@ -20,28 +19,7 @@ export default function LandingPage() {
           </span>
           <div className="flex items-center gap-2">
             <ThemeToggle ariaLabel={copy.themeToggle} />
-            <div className="rounded-full border border-line-strong bg-sunken/80 p-1">
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  locale === 'zh-CN' ? 'bg-brand text-surface' : 'text-ink-secondary hover:text-ink'
-                }`}
-                onClick={() => setLocale('zh-CN')}
-                aria-pressed={locale === 'zh-CN'}
-              >
-                中
-              </button>
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  locale === 'en-US' ? 'bg-brand text-surface' : 'text-ink-secondary hover:text-ink'
-                }`}
-                onClick={() => setLocale('en-US')}
-                aria-pressed={locale === 'en-US'}
-              >
-                EN
-              </button>
-            </div>
+            <LocaleToggle />
           </div>
         </nav>
 

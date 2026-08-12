@@ -91,9 +91,11 @@ export function ToneGauge({
 
   const needleDeg = ARC_START_DEG + (clamp100(score) / 100) * ARC_SWEEP_DEG
 
+  // The gauge box caps at the design's 288px but shrinks below it: a fixed
+  // w-72 plus the card padding overflowed the viewport on 320px-class phones.
   return (
-    <div className="relative mx-auto w-fit" style={{ contain: 'paint' }}>
-      <svg viewBox="0 0 280 280" className="h-72 w-72" role="presentation">
+    <div className="relative mx-auto w-full max-w-72" style={{ contain: 'paint' }}>
+      <svg viewBox="0 0 280 280" className="aspect-square w-full" role="presentation">
         {RINGS.map((ring) => (
           <g key={ring.id}>
             {/* track */}

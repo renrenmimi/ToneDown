@@ -28,6 +28,7 @@ import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
 import { Link } from 'wouter'
 import { Aurora } from '@/shared/ui/Aurora'
+import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type {
   EmotionHistoryEntry,
@@ -80,10 +81,27 @@ const getEmotionAtTimestamp = (
   return history[0].emotionLevel
 }
 
-function LiveSessionPage() {
+/** Owns its own 1s tick so the clock doesn't re-render the page every second. */
+function ElapsedTime({ startedAt, label }: { startedAt: number | null; label: string }) {
   const [nowTick, setNowTick] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setNowTick(Date.now())
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [])
+
+  const elapsedSeconds = startedAt ? Math.max(0, Math.floor((nowTick - startedAt) / 1000)) : 0
+  return <>{`${label}: ${formatDuration(elapsedSeconds)}`}</>
+}
+
+function LiveSessionPage() {
   const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding())
-  const { locale: language, setLocale } = useLocale()
+  const { locale: language } = useLocale()
 
   const transcriptContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -102,9 +120,9 @@ function LiveSessionPage() {
   const sessionStartedAt = useSession((s) => s.startedAt)
   const isMonitoring = phase !== 'idle' && phase !== 'recap'
 
-  // Per-tick fusion byproducts + live mic level, off the signal bus.
+  // Per-tick fusion byproducts off the signal bus. The 10Hz mic level is NOT
+  // read here — VolumeMetricCard subscribes to it so only that leaf repaints.
   const frame = useSignalValue(fusionSignal)
-  const volume = useSignalValue(volumeSignal)
 
   const rewrite = useRewriteSuggestion({
     score,
@@ -132,8 +150,6 @@ function LiveSessionPage() {
     frame.llmTone !== null && frame.fusionMode === 'llm' ? frame.llmTone.intensity : 0
 
   const permissionDenied = sessionError === 'MIC_PERMISSION_DENIED'
-  const elapsedSeconds =
-    isMonitoring && sessionStartedAt ? Math.max(0, Math.floor((nowTick - sessionStartedAt) / 1000)) : 0
 
   const toggleMonitoring = useCallback(() => {
     if (isMonitoring) {
@@ -145,16 +161,6 @@ function LiveSessionPage() {
     }
     sessionStore.dispatch({ type: 'START_REQUESTED' })
   }, [isBrowserSupported, isMonitoring])
-
-  useEffect(() => {
-    const timerId = window.setInterval(() => {
-      setNowTick(Date.now())
-    }, 1000)
-
-    return () => {
-      window.clearInterval(timerId)
-    }
-  }, [])
 
   useEffect(() => {
     if (!transcriptContainerRef.current) {
@@ -179,60 +185,35 @@ function LiveSessionPage() {
       <Aurora />
       <div className="mx-auto w-full max-w-md px-4 pb-24 pt-6">
         <header className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
-          <div className="flex items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
               <h1 className="font-display text-3xl font-bold tracking-tight text-brand">ToneDown</h1>
               <p className="mt-1 text-sm font-medium text-ink-secondary">{copy.subtitle}</p>
             </div>
-            <div className="flex items-center gap-2">
-            <Link
-              href="/gym"
-              aria-label={copy.gymLink}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
-            >
-              🏋️
-            </Link>
-            <Link
-              href="/spar"
-              aria-label={copy.sparringLink}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
-            >
-              🥊
-            </Link>
-            <Link
-              href="/history"
-              aria-label={copy.historyLink}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
-            >
-              📈
-            </Link>
-            <ThemeToggle ariaLabel={copy.themeToggle} />
-            <div className="rounded-full border border-line-strong bg-sunken/80 p-1">
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  language === 'zh-CN'
-                    ? 'bg-brand text-surface'
-                    : 'text-ink-secondary hover:text-ink'
-                }`}
-                onClick={() => setLocale('zh-CN')}
-                aria-pressed={language === 'zh-CN'}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Link
+                href="/gym"
+                aria-label={copy.gymLink}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
               >
-                中
-              </button>
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  language === 'en-US'
-                    ? 'bg-brand text-surface'
-                    : 'text-ink-secondary hover:text-ink'
-                }`}
-                onClick={() => setLocale('en-US')}
-                aria-pressed={language === 'en-US'}
+                🏋️
+              </Link>
+              <Link
+                href="/spar"
+                aria-label={copy.sparringLink}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
               >
-                EN
-              </button>
-            </div>
+                🥊
+              </Link>
+              <Link
+                href="/history"
+                aria-label={copy.historyLink}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-raised text-sm shadow-e1 transition hover:brightness-110"
+              >
+                📈
+              </Link>
+              <ThemeToggle ariaLabel={copy.themeToggle} />
+              <LocaleToggle />
             </div>
           </div>
           <p className="mt-3 text-sm text-ink-secondary">{copy.intro}</p>
@@ -262,7 +243,7 @@ function LiveSessionPage() {
         <>
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
           <div className="mb-3 text-center text-sm text-ink-muted">
-            {isMonitoring ? `${copy.listeningTime}: ${formatDuration(elapsedSeconds)}` : ''}
+            {isMonitoring ? <ElapsedTime startedAt={sessionStartedAt} label={copy.listeningTime} /> : ''}
           </div>
           <div className="flex justify-center">
             <button
@@ -306,7 +287,7 @@ function LiveSessionPage() {
           )}
 
           <div className="mt-5 grid grid-cols-3 gap-2">
-            <MetricCard label={copy.metrics.volume} value={`🔊 ${volume}%`} />
+            <VolumeMetricCard label={copy.metrics.volume} />
             <MetricCard
               label={copy.metrics.speed}
               value={`🗣️ ${frame.wordsPerMinute} ${copy.speedUnit}`}
@@ -405,6 +386,12 @@ function LiveSessionPage() {
       />
     </div>
   )
+}
+
+/** Isolated so the 10Hz mic signal repaints one card, not the whole page. */
+function VolumeMetricCard({ label }: { label: string }) {
+  const volume = useSignalValue(volumeSignal)
+  return <MetricCard label={label} value={`🔊 ${volume}%`} />
 }
 
 interface MetricCardProps {

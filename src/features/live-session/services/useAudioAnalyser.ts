@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const SAMPLE_INTERVAL_MS = 100
-const HISTORY_WINDOW_MS = 30_000
-const MAX_HISTORY_POINTS = HISTORY_WINDOW_MS / SAMPLE_INTERVAL_MS
 const VOLUME_SCALE = 260
 
 type AudioContextCtor = typeof AudioContext
@@ -18,9 +16,17 @@ export function isAudioAnalyserSupported(): boolean {
   return Boolean(window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext)
 }
 
+interface UseAudioAnalyserArgs {
+  /**
+   * Receives each 0-100 RMS sample at SAMPLE_INTERVAL_MS. Deliberately a
+   * callback rather than returned state: at 10Hz React state here would
+   * re-render every consumer of this hook ten times a second, which is
+   * exactly what the signal bus exists to avoid.
+   */
+  onSample: (volume: number) => void
+}
+
 interface UseAudioAnalyserResult {
-  volume: number
-  volumeHistory: number[]
   isListening: boolean
   isSupported: boolean
   error: string | null
@@ -31,12 +37,15 @@ interface UseAudioAnalyserResult {
   clearError: () => void
 }
 
-export function useAudioAnalyser(): UseAudioAnalyserResult {
-  const [volume, setVolume] = useState(0)
-  const [volumeHistory, setVolumeHistory] = useState<number[]>([])
+export function useAudioAnalyser({ onSample }: UseAudioAnalyserArgs): UseAudioAnalyserResult {
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null)
+
+  const onSampleRef = useRef(onSample)
+  useEffect(() => {
+    onSampleRef.current = onSample
+  }, [onSample])
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -81,8 +90,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
   const stopListening = useCallback(() => {
     cleanupAudioGraph()
     setIsListening(false)
-    setVolume(0)
-    setVolumeHistory([])
+    onSampleRef.current(0)
   }, [cleanupAudioGraph])
 
   const startListening = useCallback(async () => {
@@ -94,7 +102,6 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
     try {
       setError(null)
       stopListening()
-      setVolumeHistory([])
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const AudioContextCtorRef =
@@ -138,14 +145,7 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
         const rms = Math.sqrt(sum / samples.length)
         const normalized = Math.max(0, Math.min(100, Math.round(rms * VOLUME_SCALE)))
 
-        setVolume(normalized)
-        setVolumeHistory((prev) => {
-          const next = [...prev, normalized]
-          if (next.length > MAX_HISTORY_POINTS) {
-            return next.slice(next.length - MAX_HISTORY_POINTS)
-          }
-          return next
-        })
+        onSampleRef.current(normalized)
       }, SAMPLE_INTERVAL_MS)
 
       setIsListening(true)
@@ -175,8 +175,6 @@ export function useAudioAnalyser(): UseAudioAnalyserResult {
   }, [cleanupAudioGraph])
 
   return {
-    volume,
-    volumeHistory,
     isListening,
     isSupported,
     error,
