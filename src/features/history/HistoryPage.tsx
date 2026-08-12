@@ -3,6 +3,7 @@ import { Link } from 'wouter'
 import { useLocale } from '@/shared/i18n/localeContext'
 import type { SessionRecord } from '@/shared/storage/records'
 import { Aurora } from '@/shared/ui/Aurora'
+import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { CalendarHeatmap, TrendChart } from './charts'
 import { bucketByDay, heatColor } from './chartData'
@@ -120,7 +121,10 @@ export default function HistoryPage() {
           <Link href="/app" className="text-sm font-semibold text-brand hover:brightness-110">
             ← {copy.back}
           </Link>
-          <ThemeToggle ariaLabel={copy.themeToggle} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle ariaLabel={copy.themeToggle} />
+            <LocaleToggle />
+          </div>
         </nav>
 
         <h1 className="font-display text-3xl font-bold tracking-tight">{copy.title}</h1>

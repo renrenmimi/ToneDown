@@ -80,7 +80,12 @@ export function useSparringRound(
 
       const userTurn: ChatTurn = { role: 'user', text }
       const turnsWithUser = [...current.turns, userTurn]
-      setState({ ...current, turns: turnsWithUser, inFlight: true })
+      const pending: RoundState = { ...current, turns: turnsWithUser, inFlight: true }
+      // Claim the in-flight slot synchronously. The ref is otherwise only
+      // refreshed by an effect after commit, so two sends in one tick (key
+      // repeat on the form) would both read inFlight:false and double-spend.
+      stateRef.current = pending
+      setState(pending)
 
       const history: SparringTurn[] = turnsWithUser
         .slice(-12)

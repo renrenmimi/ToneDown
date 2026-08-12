@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { gymGradeEndpoint } from '@/shared/llm/endpoints'
 import type { DrillProgressRecord } from '@/shared/storage/records'
 import type { GymGradeResponse } from '@/types/api'
@@ -56,6 +56,7 @@ export function useGym(locale: Locale) {
   const [records, setRecords] = useState<DrillProgressRecord[]>([])
   const [status, setStatus] = useState<GradeStatus>('idle')
   const [lastGrade, setLastGrade] = useState<GymGradeResponse | null>(null)
+  const gradingRef = useRef(false)
 
   useEffect(() => {
     void import('@/shared/storage/db')
@@ -67,9 +68,12 @@ export function useGym(locale: Locale) {
   const grade = useCallback(
     async (attempt: string) => {
       const text = attempt.trim()
-      if (text.length < 2 || status === 'grading') {
+      // Ref, not `status`: the state guard only takes effect after commit, so
+      // two submits in one tick would both pass it and grade twice.
+      if (text.length < 2 || gradingRef.current || status === 'grading') {
         return
       }
+      gradingRef.current = true
       setStatus('grading')
 
       const cacheKey = gradeCacheKey(drill.id, text)
@@ -111,11 +115,13 @@ export function useGym(locale: Locale) {
             )
             .catch(() => undefined)
         } catch {
+          gradingRef.current = false
           setStatus('failed')
           return
         }
       }
 
+      gradingRef.current = false
       setLastGrade(result)
       setStatus('done')
 
