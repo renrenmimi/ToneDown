@@ -17,7 +17,8 @@ const MIN_PROBE_DELAY_MS = 1_000
 
 interface UseGroqTranscriberArgs {
   mediaStream: MediaStream | null
-  volume: number
+  /** Pulled at the segment sampling rate rather than passed as a 10Hz prop. */
+  getVolume: () => number
   isActive: boolean
   language: AppLanguage
   onFinalEntries: (entries: TranscriptEntry[]) => void
@@ -47,7 +48,7 @@ interface UseGroqTranscriberResult {
  */
 export function useGroqTranscriber({
   mediaStream,
-  volume,
+  getVolume,
   isActive,
   language,
   onFinalEntries,
@@ -61,15 +62,15 @@ export function useGroqTranscriber({
   // otherwise the engine is 'browser' only while a monitoring session is degraded.
   const engine: SttEngine = mimeType === null || (isActive && degraded) ? 'browser' : 'groq'
 
-  const volumeRef = useRef(volume)
+  const getVolumeRef = useRef(getVolume)
   const languageRef = useRef(language)
   const onFinalEntriesRef = useRef(onFinalEntries)
 
   useEffect(() => {
-    volumeRef.current = volume
+    getVolumeRef.current = getVolume
     languageRef.current = language
     onFinalEntriesRef.current = onFinalEntries
-  }, [language, onFinalEntries, volume])
+  }, [getVolume, language, onFinalEntries])
 
   useEffect(() => {
     if (!isActive || !mediaStream || !mimeType) {
@@ -202,7 +203,7 @@ export function useGroqTranscriber({
       const chunks: Blob[] = []
       const volumeSamples: number[] = []
       const volumeTimer = setInterval(() => {
-        volumeSamples.push(volumeRef.current)
+        volumeSamples.push(getVolumeRef.current())
       }, VOLUME_SAMPLE_MS)
 
       recorder.ondataavailable = (event) => {

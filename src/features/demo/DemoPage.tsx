@@ -24,6 +24,7 @@ import { createInitialSessionState } from '@/features/live-session/machine/sessi
 import { RecapView } from '@/features/recap/RecapView'
 import { recapSignal } from '@/features/recap/recapStore'
 import { Aurora } from '@/shared/ui/Aurora'
+import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { useSignalValue } from '@/shared/state/signalBus'
 import { DEMO_DURATION_MS, DEMO_STEPS, volumeBaseAt, type DemoSink } from './script'
@@ -142,7 +143,10 @@ export default function DemoPage() {
           <Link href="/" className="text-sm font-semibold text-brand hover:brightness-110">
             ← {copy.back}
           </Link>
-          <ThemeToggle ariaLabel={copy.themeToggle} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle ariaLabel={copy.themeToggle} />
+            <LocaleToggle />
+          </div>
         </nav>
 
         {/* player chrome */}

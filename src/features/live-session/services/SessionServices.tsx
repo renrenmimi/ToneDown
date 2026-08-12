@@ -23,7 +23,14 @@ export function SessionServices() {
   const engines = useEngines()
   const transcript = useTranscript()
 
-  const audio = useAudioAnalyser()
+  // --- volume: 100ms RMS straight onto the signal bus (never through React
+  // state, so a talking user doesn't re-render this tree ten times a second) ---
+  const publishVolume = useCallback((next: number) => {
+    volumeSignal.set(next)
+  }, [])
+  const readVolume = useCallback(() => volumeSignal.get(), [])
+
+  const audio = useAudioAnalyser({ onSample: publishVolume })
   const audioRef = useRef(audio)
   useEffect(() => {
     audioRef.current = audio
@@ -60,11 +67,6 @@ export function SessionServices() {
     }
   }, [audio.error, phase])
 
-  // --- volume: 100ms RMS onto the signal bus (never through the machine) ---
-  useEffect(() => {
-    volumeSignal.set(audio.volume)
-  }, [audio.volume])
-
   // --- STT engines feeding the shared transcript ---
   const dispatchFinalEntries = useCallback((entries: TranscriptEntry[]) => {
     sessionStore.dispatch({ type: 'TRANSCRIPT_FINALIZED', entries })
@@ -80,7 +82,7 @@ export function SessionServices() {
   })
   const transcriber = useGroqTranscriber({
     mediaStream: audio.mediaStream,
-    volume: audio.volume,
+    getVolume: readVolume,
     isActive,
     language,
     onFinalEntries: dispatchFinalEntries,

@@ -3,6 +3,7 @@ import { Link } from 'wouter'
 import { useLocale } from '@/shared/i18n/localeContext'
 import { Aurora } from '@/shared/ui/Aurora'
 import { Confetti } from '@/shared/ui/Confetti'
+import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import type { EmotionLevel } from '@/types/app'
 import { useSparringT } from './i18n'
@@ -288,7 +289,10 @@ export default function SparringPage() {
           <Link href="/app" className="text-sm font-semibold text-brand hover:brightness-110">
             ← {copy.back}
           </Link>
-          <ThemeToggle ariaLabel={copy.themeToggle} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle ariaLabel={copy.themeToggle} />
+            <LocaleToggle />
+          </div>
         </nav>
 
         {persona === null ? (

@@ -227,21 +227,36 @@ export function useSpeechRecognition({
     setError(null)
   }, [])
 
+  // A live SpeechRecognition ignores `lang` changes, so switching locale has to
+  // bounce it — onend then restarts it with the new language. This must key off
+  // the language ALONE: including isRecognizing made every successful start
+  // immediately stop itself, and onend's restart re-triggered the effect, so the
+  // fallback engine ping-ponged every ~180ms and transcribed almost nothing.
+  const appliedLanguageRef = useRef(language)
   useEffect(() => {
-    if (!recognitionRef.current) {
+    const recognition = recognitionRef.current
+    if (!recognition) {
+      appliedLanguageRef.current = language
       return
     }
 
-    recognitionRef.current.lang = language
+    recognition.lang = language
 
-    if (isRecognizing) {
-      try {
-        recognitionRef.current.stop()
-      } catch {
-        // No-op: recognition may already be in transition.
-      }
+    if (appliedLanguageRef.current === language) {
+      return
     }
-  }, [isRecognizing, language])
+    appliedLanguageRef.current = language
+
+    if (!shouldRestartRef.current) {
+      return
+    }
+
+    try {
+      recognition.stop()
+    } catch {
+      // No-op: recognition may already be in transition.
+    }
+  }, [language])
 
   useEffect(() => {
     return () => {
