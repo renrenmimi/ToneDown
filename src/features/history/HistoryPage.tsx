@@ -6,7 +6,7 @@ import { Aurora } from '@/shared/ui/Aurora'
 import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { CalendarHeatmap, TrendChart } from './charts'
-import { bucketByDay, heatColor } from './chartData'
+import { bucketByDay, heatColor, heatInk } from './chartData'
 import { useHistoryT } from './i18n'
 
 const HOLD_MS = 1_500
@@ -196,7 +196,7 @@ export default function HistoryPage() {
                     </div>
                     <span
                       className="ml-3 shrink-0 rounded-full px-2.5 py-1 font-display text-sm font-bold tabular-nums"
-                      style={{ background: heatColor(record.calmScore), color: '#06251f' }}
+                      style={{ background: heatColor(record.calmScore), color: heatInk(record.calmScore) }}
                     >
                       {record.calmScore}
                     </span>

@@ -40,18 +40,40 @@ export class CircuitBreaker {
   }
 
   /**
-   * True when a request may be issued now. An open circuit whose backoff has
-   * elapsed transitions to half-open and admits a single probe.
+   * Pure query: may a request be issued right now?
+   *
+   * Deliberately side-effect free. Callers pre-flight with this ("is it even
+   * worth assembling a request?") and only some of them go on to issue one —
+   * if the query itself burned the half-open transition, a caller that bailed
+   * out afterwards would strand the breaker half-open with no probe in flight,
+   * and nothing would ever close it again. Reserving the slot is beginAttempt's
+   * job.
    */
   canAttempt(now: number = Date.now()): boolean {
     if (this.currentState === 'closed') {
       return true
     }
-    if (this.currentState === 'open' && now >= this.nextProbeAt) {
-      this.currentState = 'half-open'
-      return true
+    if (this.currentState === 'half-open') {
+      // A probe is already in flight; it alone decides the next transition.
+      return false
     }
-    return false
+    return now >= this.nextProbeAt
+  }
+
+  /**
+   * Reserve the attempt slot for a request that is actually being issued now,
+   * moving an elapsed open circuit to half-open. The caller MUST then reach
+   * recordSuccess() or recordFailure() on every path — a reserved probe that
+   * never reports back leaves the breaker half-open indefinitely.
+   */
+  beginAttempt(now: number = Date.now()): boolean {
+    if (!this.canAttempt(now)) {
+      return false
+    }
+    if (this.currentState === 'open') {
+      this.currentState = 'half-open'
+    }
+    return true
   }
 
   recordSuccess(): void {

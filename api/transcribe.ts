@@ -9,6 +9,13 @@ const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024
 const RATE_LIMIT_PER_MINUTE = 30
 const UPSTREAM_TIMEOUT_MS = 9_000
 
+// Matches the other five routes. Without it the platform default (10s) sits
+// barely above this route's own 9s upstream timeout, so a slow Whisper call
+// races the runtime: the function gets killed and the client receives a
+// platform error page instead of this handler's clean UPSTREAM_TIMEOUT JSON.
+// This is also the highest-frequency route — one call per 4s segment.
+export const config = { maxDuration: 30 }
+
 // The client sends raw audio bytes as application/octet-stream (which
 // @vercel/node parses to a Buffer) and the real container type in
 // x-audio-mime, sidestepping body-parser ambiguity for audio/* types.

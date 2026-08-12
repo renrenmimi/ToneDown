@@ -38,7 +38,14 @@ export function useHoldToTalk(locale: Locale, onText: (text: string) => void) {
 
   useEffect(() => cleanup, [cleanup])
 
+  // Set the moment the user lets go. getUserMedia is async, so a quick tap can
+  // release before the mic is even acquired — without this the recorder would
+  // still start and hold the mic open for the full MAX_HOLD_MS, then transcribe
+  // 15s of room audio the user never meant to send.
+  const releasedRef = useRef(false)
+
   const stop = useCallback(() => {
+    releasedRef.current = true
     const recorder = recorderRef.current
     if (recorder && recorder.state === 'recording') {
       recorder.stop()
@@ -54,11 +61,19 @@ export function useHoldToTalk(locale: Locale, onText: (text: string) => void) {
       return
     }
 
+    releasedRef.current = false
+
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch {
       setStatus('unavailable')
+      return
+    }
+
+    if (releasedRef.current) {
+      // Released during acquisition: hand the mic straight back.
+      stream.getTracks().forEach((track) => track.stop())
       return
     }
 

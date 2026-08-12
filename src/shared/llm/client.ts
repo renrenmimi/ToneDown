@@ -48,7 +48,9 @@ export function createEndpoint<TReq, TRes>(spec: EndpointSpec<TReq, TRes>): Endp
       if (!decision.allowed) {
         throw new BudgetExceededError(spec.feature)
       }
-      if (!breaker.canAttempt()) {
+      // beginAttempt, not canAttempt: this is the point where a request really
+      // goes out, so this is where the half-open probe slot gets reserved.
+      if (!breaker.beginAttempt()) {
         throw new BreakerOpenError(spec.breaker)
       }
 

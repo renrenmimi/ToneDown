@@ -74,8 +74,19 @@ export const DRILLS: Drill[] = [
 
 export function todaysDrill(locale: 'zh-CN' | 'en-US', now = Date.now()): Drill {
   const pool = DRILLS.filter((d) => d.locale === locale)
-  const day = Math.floor(now / 86_400_000)
-  return pool[day % pool.length]
+  return pool[localDayIndex(now) % pool.length]
+}
+
+/**
+ * Days since epoch counted on the LOCAL calendar, so the drill rotates at the
+ * same midnight that localDateKey (and therefore clearedToday and the streak)
+ * rolls over on. now/86_400_000 counts UTC days: in UTC-7 that swapped the
+ * drill at 5pm local, mid-afternoon resetting a user's cleared badge and
+ * offering them a second drill for the same calendar day.
+ */
+function localDayIndex(now: number): number {
+  const d = new Date(now)
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000)
 }
 
 /** djb2 over drillId + normalized attempt — the grade-cache key. */
