@@ -12,6 +12,10 @@
 | `/gym` | A daily "say it calmer" drill, judged 0–100; streaks and achievements |
 | `/history` | Local-only history: calm calendar, trend, JSON export, hold-to-erase |
 
+![Live session — the three-ring gauge, session ribbon, and AI rewrites](docs/screenshot.jpg)
+
+*Live session — the three-ring gauge, session ribbon, and AI rewrites*
+
 ## Architecture
 
 ```
