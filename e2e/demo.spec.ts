@@ -5,9 +5,7 @@ import { expect, test } from '@playwright/test'
 // network calls to /api. Any API hit fails the test outright.
 
 test('demo replays the full session loop with zero API traffic', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('tonedown.locale.v1', 'en-US')
-  })
+  await page.addInitScript("localStorage.setItem('tonedown.locale.v1', 'en-US')")
   const apiHits: string[] = []
   await page.route('**/api/**', (route) => {
     apiHits.push(route.request().url())
