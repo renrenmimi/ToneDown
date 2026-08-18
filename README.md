@@ -84,3 +84,6 @@ All JSON-mode with strict validation and one corrective retry at temperature 0; 
 ---
 
 *ToneDown is a communication aid, not counseling.*
+
+© 2026 Weiren Feng. All rights reserved. Published for reading and portfolio purposes; not
+licensed for reuse, modification, or redistribution.
