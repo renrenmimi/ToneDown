@@ -1,12 +1,12 @@
 {
-  "name": "ToneDown 情侣语气检测助手",
+  "name": "ToneDown — Live Tone Coach",
   "short_name": "ToneDown",
-  "description": "用浏览器原生能力做情侣沟通语气检测。",
+  "description": "A bilingual live tone coach for heated conversations.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#0f172a",
-  "lang": "zh-CN",
+  "lang": "en-US",
   "icons": [
     {
       "src": "/icon.svg",

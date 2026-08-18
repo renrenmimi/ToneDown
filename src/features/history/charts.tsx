@@ -10,9 +10,10 @@ const GAP = 3
 interface HeatmapProps {
   buckets: Map<string, DayBucket>
   cellLabel: (date: string, calm: number, sessions: number) => string
+  ariaLabel: string
 }
 
-export function CalendarHeatmap({ buckets, cellLabel }: HeatmapProps) {
+export function CalendarHeatmap({ buckets, cellLabel, ariaLabel }: HeatmapProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   // grid ends on today's week (Sunday-start columns)
@@ -43,7 +44,7 @@ export function CalendarHeatmap({ buckets, cellLabel }: HeatmapProps) {
       viewBox={`0 0 ${width} ${height}`}
       className="w-full"
       role="img"
-      aria-label="calendar heatmap"
+      aria-label={ariaLabel}
     >
       {cells.map((cell) =>
         cell.future ? null : (
@@ -70,9 +71,10 @@ export function CalendarHeatmap({ buckets, cellLabel }: HeatmapProps) {
 
 interface TrendChartProps {
   records: SessionRecord[]
+  ariaLabel: string
 }
 
-export function TrendChart({ records }: TrendChartProps) {
+export function TrendChart({ records, ariaLabel }: TrendChartProps) {
   if (records.length < 2) {
     return null
   }
@@ -84,7 +86,7 @@ export function TrendChart({ records }: TrendChartProps) {
   const points = records.map((r, i) => `${xs(i).toFixed(1)},${ys(r.calmScore).toFixed(1)}`).join(' ')
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-full" role="img" aria-label="calm trend">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-full" role="img" aria-label={ariaLabel}>
       {[25, 50, 75].map((line) => (
         <line
           key={line}

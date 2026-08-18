@@ -14,6 +14,8 @@ interface HistoryStrings {
   deleteAll: string
   deleteHint: string
   heatmapCellLabel: (date: string, calm: number, sessions: number) => string
+  heatmapAriaLabel: string
+  trendAriaLabel: string
   themeToggle: string
 }
 
@@ -33,6 +35,8 @@ export const { useT: useHistoryT } = createI18n<HistoryStrings>({
     deleteHint: 'No cloud, no copies — gone is gone.',
     heatmapCellLabel: (date, calm, sessions) =>
       `${date} — calm score ${calm}, ${sessions} session${sessions === 1 ? '' : 's'}`,
+    heatmapAriaLabel: 'Calm score calendar heatmap',
+    trendAriaLabel: 'Calm score trend over time',
     themeToggle: 'Toggle light/dark theme',
   },
   'zh-CN': {
@@ -49,6 +53,8 @@ export const { useT: useHistoryT } = createI18n<HistoryStrings>({
     deleteAll: '长按清空全部数据',
     deleteHint: '没有云端备份——删了就真的没了。',
     heatmapCellLabel: (date, calm, sessions) => `${date} — 冷静分 ${calm}，${sessions} 次`,
+    heatmapAriaLabel: '冷静分日历热力图',
+    trendAriaLabel: '冷静分时间趋势',
     themeToggle: '切换深浅色主题',
   },
 })

@@ -23,11 +23,12 @@ import {
 import { createInitialSessionState } from '@/features/live-session/machine/sessionMachine'
 import { RecapView } from '@/features/recap/RecapView'
 import { recapSignal } from '@/features/recap/recapStore'
+import { useLocale, type Locale } from '@/shared/i18n/localeContext'
 import { Aurora } from '@/shared/ui/Aurora'
 import { LocaleToggle } from '@/shared/ui/LocaleToggle'
 import { ThemeToggle } from '@/shared/ui/ThemeToggle'
 import { useSignalValue } from '@/shared/state/signalBus'
-import { DEMO_DURATION_MS, DEMO_STEPS, volumeBaseAt, type DemoSink } from './script'
+import { buildDemoSteps, DEMO_DURATION_MS, volumeBaseAt, type DemoSink } from './script'
 import { useDemoT } from './i18n'
 
 // /demo: the full product in ~46s with zero mic, zero network, zero tokens.
@@ -35,7 +36,7 @@ import { useDemoT } from './i18n'
 // /app — only the inputs are canned. (LiveSessionPage's SessionServices is
 // NOT mounted here, so no mic/LLM adapters exist at all.)
 
-function useDemoPlayer() {
+function useDemoPlayer(locale: Locale) {
   const [progress, setProgress] = useState(0)
   const [runId, setRunId] = useState(0)
   const [suggestion, setSuggestion] = useState<{ original: string; rewrite: string } | null>(null)
@@ -70,7 +71,7 @@ function useDemoPlayer() {
     const startedAt = performance.now()
     const timers: number[] = []
 
-    for (const step of DEMO_STEPS) {
+    for (const step of buildDemoSteps(locale)) {
       timers.push(window.setTimeout(() => step.run(sink, Date.now()), step.at))
     }
 
@@ -105,15 +106,23 @@ function useDemoPlayer() {
       sessionStore.replaceState(createInitialSessionState())
       fusionSignal.set(initialFusionFrame)
     }
-  }, [runId])
+  }, [locale, runId])
 
   return { progress, suggestion, restart: () => setRunId((id) => id + 1) }
 }
 
 export default function DemoPage() {
+  const { locale } = useLocale()
+
+  // Remount the scripted player on locale changes. This clears every timer and
+  // transient card before the new language starts at step zero.
+  return <LocalizedDemoPage key={locale} locale={locale} />
+}
+
+function LocalizedDemoPage({ locale }: { locale: Locale }) {
   const copy = useDemoT()
   const liveCopy = useLiveSessionT()
-  const { progress, suggestion, restart } = useDemoPlayer()
+  const { progress, suggestion, restart } = useDemoPlayer(locale)
 
   const phase = useSessionPhase()
   const score = useSessionScore()
@@ -197,7 +206,7 @@ export default function DemoPage() {
             </div>
 
             {phase === 'intervention' ? (
-              <BreathingGuide staticGrounding="You're one breath away from a better sentence." />
+              <BreathingGuide staticGrounding={copy.grounding} />
             ) : (
               <ToneGauge
                 score={score}
@@ -247,7 +256,7 @@ export default function DemoPage() {
       </div>
 
       <SessionRibbon />
-      <ToneSuggestion triggerKeyword={null} llmSuggestion={suggestion} />
+      <ToneSuggestion key={locale} triggerKeyword={null} llmSuggestion={suggestion} />
     </div>
   )
 }

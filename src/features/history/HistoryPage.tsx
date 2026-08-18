@@ -143,7 +143,11 @@ export default function HistoryPage() {
                 <p className="text-xs text-ink-muted">{copy.sessionsCount(records.length)}</p>
               </div>
               <div className="mt-3">
-                <CalendarHeatmap buckets={buckets} cellLabel={copy.heatmapCellLabel} />
+                <CalendarHeatmap
+                  buckets={buckets}
+                  cellLabel={copy.heatmapCellLabel}
+                  ariaLabel={copy.heatmapAriaLabel}
+                />
               </div>
               <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-ink-muted">
                 <span>{copy.legendLess}</span>
@@ -162,7 +166,7 @@ export default function HistoryPage() {
               <section className="mt-4 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
                 <p className="text-sm font-medium text-ink-secondary">{copy.trendTitle}</p>
                 <div className="mt-2">
-                  <TrendChart records={records} />
+                  <TrendChart records={records} ariaLabel={copy.trendAriaLabel} />
                 </div>
               </section>
             )}
