@@ -19,5 +19,6 @@ export const useTranscript = () => useSession((s) => s.transcript)
 export const useInterim = () => useSession((s) => s.interim)
 export const useEngines = () => useSession((s) => s.engines)
 export const useSessionError = () => useSession((s) => s.error)
+export const useReminders = () => useSession((s) => s.reminders)
 export const useIsSessionActive = () =>
   useSession((s) => s.phase !== 'idle' && s.phase !== 'recap')

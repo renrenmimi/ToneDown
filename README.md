@@ -22,6 +22,7 @@ A bilingual tone-coaching web application for practicing calmer communication. I
 - Browser audio APIs measure volume and collect short transcription segments.
 - A typed state machine coordinates calibration, listening, escalation, intervention, and recap states.
 - A two-second scoring loop combines available acoustic and language signals.
+- An explanation timeline keeps those two signal families on separate tracks and states, for every reminder, which rule it met and how many points each signal contributed.
 - Server functions keep model credentials off the client and validate structured responses.
 - IndexedDB stores session history locally.
 

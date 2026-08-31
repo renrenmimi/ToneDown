@@ -1,7 +1,7 @@
 import { createMachineStore } from '@/shared/state/machine'
 import { createSignal } from '@/shared/state/signalBus'
-import type { LlmToneResult, SpeedLevel } from '@/types/app'
-import { EMOTION_META, type FusionMode } from '../lib/fusion'
+import type { FusionMode, LlmToneResult, SpeedLevel } from '@/types/app'
+import { EMOTION_META } from '../lib/fusion'
 import {
   createInitialSessionState,
   sessionReducer,

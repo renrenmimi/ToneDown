@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { computeScore } from '../lib/fusion'
 import {
   createInitialSessionState,
   DEESCALATE_SCORE,
@@ -179,6 +180,88 @@ describe('intervention trigger (score >= 70 held 5s)', () => {
 
     const fires = run([...base, { type: 'TICK', at: cooldownEnd + ESCALATION_SUSTAIN_MS }])
     expect(fires.state.phase).toBe('intervention')
+  })
+})
+
+describe('reminder provenance', () => {
+  const hostileSignals = computeScore(
+    80,
+    'fast',
+    [{ text: '你总是这样', timestamp: T0 + 2_000 }],
+    T0 + 2_000,
+    { tone: 'aggressive', intensity: 85, rationale: '', at: T0 + 2_000 },
+    true,
+  ).signals
+
+  const scoredHostile: SessionEvent = {
+    type: 'SCORE_UPDATED',
+    score: 88,
+    level: 'critical',
+    at: T0 + 2_000,
+    signals: hostileSignals,
+  }
+
+  it('keeps each tick\'s signal breakdown on the history entry', () => {
+    const { state } = run([...startToListening, scoredHostile])
+    expect(state.scoreHistory[0].signals).toBe(hostileSignals)
+  })
+
+  it('records the breathing reminder with the tick that justified it', () => {
+    const firesAt = T0 + 2_000 + ESCALATION_SUSTAIN_MS
+    const { state } = run([...startToListening, scoredHostile, { type: 'TICK', at: firesAt }])
+
+    expect(state.reminders).toHaveLength(1)
+    expect(state.reminders[0]).toEqual({
+      at: firesAt,
+      kind: 'breathing',
+      score: 88,
+      signals: hostileSignals,
+    })
+  })
+
+  it('records a rewrite reminder with its quote and the latest signals', () => {
+    const offeredAt = T0 + 3_000
+    const { state } = run([
+      ...startToListening,
+      scoredHostile,
+      {
+        type: 'REWRITE_OFFERED',
+        moment: { at: offeredAt, quote: '你总是这样', rewrite: '我希望我们能更多地…' },
+      },
+    ])
+
+    expect(state.reminders).toEqual([
+      {
+        at: offeredAt,
+        kind: 'rewrite',
+        score: 88,
+        signals: hostileSignals,
+        quote: '你总是这样',
+      },
+    ])
+    // The ribbon's own list stays untouched by the reminder log.
+    expect(state.flaggedMoments).toHaveLength(1)
+  })
+
+  it('survives ticks dispatched without provenance', () => {
+    const firesAt = T0 + 2_000 + ESCALATION_SUSTAIN_MS
+    const { state } = run([...startToListening, score(88, T0 + 2_000), { type: 'TICK', at: firesAt }])
+
+    expect(state.reminders[0].signals).toBeNull()
+  })
+
+  it('a new session clears the reminder log', () => {
+    const prev = run([
+      ...startToListening,
+      scoredHostile,
+      { type: 'TICK', at: T0 + 2_000 + ESCALATION_SUSTAIN_MS },
+      { type: 'STOP_REQUESTED', at: T0 + 20_000 },
+      { type: 'RECAP_CLOSED' },
+    ]).state
+    expect(prev.reminders).toHaveLength(1)
+
+    const { state } = run([{ type: 'START_REQUESTED' }], prev)
+    expect(state.reminders).toHaveLength(0)
   })
 })
 

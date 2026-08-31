@@ -37,6 +37,11 @@
   --tone-heated: #ba4a18;
   --tone-hostile: #a83442;
 
+  /* Signal provenance: indigo = heard by the mic, teal = read from the words.
+     Deliberately outside the tone ramp — these say WHERE a number came from,
+     never how bad it is. */
+  --signal-acoustic: #5566c9;
+
   --elev-1: 0 1px 3px rgb(19 36 51 / 0.08);
   --elev-2: 0 8px 24px -8px rgb(19 36 51 / 0.16);
   --elev-3: 0 24px 64px -16px rgb(19 36 51 / 0.22);
@@ -68,6 +73,8 @@
   --tone-heated: #f8924f;
   --tone-hostile: #de6470;
 
+  --signal-acoustic: #7c8ce4;
+
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.04);
   --elev-2: 0 8px 24px -8px rgb(3 10 20 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.04);
   --elev-3: 0 24px 64px -16px rgb(3 10 20 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
@@ -96,6 +103,7 @@
   --color-tone-tense: var(--tone-tense);
   --color-tone-heated: var(--tone-heated);
   --color-tone-hostile: var(--tone-hostile);
+  --color-signal-acoustic: var(--signal-acoustic);
 
   --font-sans:
     'Source Sans 3 Variable', -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',

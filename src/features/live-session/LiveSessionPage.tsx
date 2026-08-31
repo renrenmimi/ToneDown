@@ -24,6 +24,7 @@ import { useLocale } from '@/shared/i18n/localeContext'
 import { BreathingGuide } from './components/BreathingGuide'
 import { Onboarding } from './components/Onboarding'
 import { shouldShowOnboarding } from './lib/onboardingFlag'
+import { ExplanationTimeline } from './components/ExplanationTimeline'
 import { SessionRibbon } from './components/SessionRibbon'
 import { ToneGauge } from './components/ToneGauge'
 import { Link } from 'wouter'
@@ -238,7 +239,10 @@ function LiveSessionPage() {
         )}
 
         {phase === 'recap' ? (
-          <RecapView />
+          <>
+            <RecapView />
+            <ExplanationTimeline />
+          </>
         ) : (
         <>
         <section className="mb-5 rounded-sheet border border-line bg-raised/80 p-5 shadow-e2 backdrop-blur">
@@ -370,7 +374,7 @@ function LiveSessionPage() {
           <p className="mt-3 text-xs text-ink-muted">{copy.toneSuggestionHint}</p>
         </section>
 
-
+        <ExplanationTimeline />
         </>
         )}
 

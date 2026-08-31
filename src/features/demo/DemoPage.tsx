@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'wouter'
 import { BreathingGuide } from '@/features/live-session/components/BreathingGuide'
+import { ExplanationTimeline } from '@/features/live-session/components/ExplanationTimeline'
 import { SessionRibbon } from '@/features/live-session/components/SessionRibbon'
 import { ToneGauge } from '@/features/live-session/components/ToneGauge'
 import { ToneSuggestion } from '@/features/live-session/components/ToneSuggestion'
@@ -181,6 +182,7 @@ function LocalizedDemoPage({ locale }: { locale: Locale }) {
         {phase === 'recap' ? (
           <>
             <RecapView />
+            <ExplanationTimeline />
             <p className="mt-3 text-center text-xs text-ink-muted">{copy.endedNote}</p>
           </>
         ) : (
@@ -242,6 +244,8 @@ function LocalizedDemoPage({ locale }: { locale: Locale }) {
             </div>
           </section>
         )}
+
+        {phase !== 'recap' && <ExplanationTimeline />}
 
         {ended && (
           <div className="mt-4 flex justify-center">

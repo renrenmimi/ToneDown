@@ -83,7 +83,7 @@ export function ToneGauge({
     semantic: clamp100(semanticValue),
   }
   const ringColor: Record<RingSpec['id'], string> = {
-    volume: '#7c8ce4',
+    volume: 'var(--signal-acoustic)',
     rate: 'var(--brand)',
     // Only the semantic ring (the actual judgment) takes the tone color.
     semantic: toneVar(level),
