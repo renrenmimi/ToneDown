@@ -72,6 +72,7 @@ export function useFusionService({ llmTone, llmAvailable, language }: UseFusionS
         score: result.score,
         level: result.emotionLevel,
         at: now,
+        signals: result.signals,
       })
     }, FUSION_INTERVAL_MS)
 

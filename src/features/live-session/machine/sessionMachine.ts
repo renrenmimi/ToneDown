@@ -1,5 +1,12 @@
-import type { EmotionHistoryEntry, EmotionLevel, SttEngine, TranscriptEntry } from '@/types/app'
+import type {
+  EmotionHistoryEntry,
+  EmotionLevel,
+  SignalBreakdown,
+  SttEngine,
+  TranscriptEntry,
+} from '@/types/app'
 import type { Reduction } from '@/shared/state/machine'
+import type { ReminderEvent } from '../lib/explain'
 
 // The session lifecycle as an explicit, pure state machine.
 //
@@ -51,6 +58,8 @@ export interface SessionState {
   engines: EngineState
   error: SessionError
   flaggedMoments: FlaggedMoment[]
+  /** Every nudge the session gave, with the tick that justified it. */
+  reminders: ReminderEvent[]
 }
 
 export type SessionEvent =
@@ -60,7 +69,14 @@ export type SessionEvent =
   | { type: 'CALIBRATION_COMPLETE'; at: number }
   | { type: 'TRANSCRIPT_FINALIZED'; entries: TranscriptEntry[] }
   | { type: 'INTERIM_CHANGED'; text: string }
-  | { type: 'SCORE_UPDATED'; score: number; level: EmotionLevel; at: number }
+  | {
+      type: 'SCORE_UPDATED'
+      score: number
+      level: EmotionLevel
+      at: number
+      /** Provenance of this score; absent only in tests and legacy callers. */
+      signals?: SignalBreakdown
+    }
   | { type: 'TICK'; at: number }
   | { type: 'INTERVENTION_ACKNOWLEDGED'; at: number }
   | { type: 'STOP_REQUESTED'; at: number }
@@ -86,6 +102,7 @@ export const INTERVENTION_COOLDOWN_MS = 60_000
 export const MAX_TRANSCRIPT_ENTRIES = 600
 export const MAX_HISTORY_POINTS = 300
 export const MAX_FLAGGED_MOMENTS = 20
+export const MAX_REMINDERS = 20
 
 const ACTIVE_PHASES: readonly SessionPhase[] = [
   'calibrating',
@@ -111,6 +128,7 @@ export function createInitialSessionState(): SessionState {
     engines: { stt: 'groq', analysis: 'rules' },
     error: null,
     flaggedMoments: [],
+    reminders: [],
   }
 }
 
@@ -118,8 +136,17 @@ type SessionReduction = Reduction<SessionState, SessionEffect>
 
 const stay = (state: SessionState): SessionReduction => ({ state })
 
-function withScore(state: SessionState, score: number, level: EmotionLevel, at: number): SessionState {
-  const nextHistory = [...state.scoreHistory, { timestamp: at, score, emotionLevel: level }]
+function withScore(
+  state: SessionState,
+  score: number,
+  level: EmotionLevel,
+  at: number,
+  signals?: SignalBreakdown,
+): SessionState {
+  const nextHistory: EmotionHistoryEntry[] = [
+    ...state.scoreHistory,
+    { timestamp: at, score, emotionLevel: level, signals },
+  ]
   return {
     ...state,
     score,
@@ -149,6 +176,35 @@ function interventionDue(state: SessionState, at: number): boolean {
   }
   const effectiveSince = Math.max(state.escalatedSince, state.interventionCooldownUntil)
   return at - effectiveSince >= ESCALATION_SUSTAIN_MS && at >= state.interventionCooldownUntil
+}
+
+/** Provenance of the most recent scored tick, or null before the first one. */
+function latestSignals(state: SessionState): SignalBreakdown | null {
+  return state.scoreHistory[state.scoreHistory.length - 1]?.signals ?? null
+}
+
+function withReminder(state: SessionState, reminder: ReminderEvent): ReminderEvent[] {
+  return [...state.reminders, reminder].slice(-MAX_REMINDERS)
+}
+
+/**
+ * Entering the breathing pause. The tick that justified it is captured here,
+ * at the transition, so the explanation can never be recomputed from later
+ * (already calmer) numbers.
+ */
+function toIntervention(state: SessionState, at: number): SessionState {
+  return {
+    ...state,
+    phase: 'intervention',
+    interventionEndsAt: at + INTERVENTION_DURATION_MS,
+    interventionCount: state.interventionCount + 1,
+    reminders: withReminder(state, {
+      at,
+      kind: 'breathing',
+      score: state.score,
+      signals: latestSignals(state),
+    }),
+  }
 }
 
 export function sessionReducer(state: SessionState, event: SessionEvent): SessionReduction {
@@ -188,7 +244,17 @@ export function sessionReducer(state: SessionState, event: SessionEvent): Sessio
         return stay(state)
       }
       const moments = [...state.flaggedMoments, event.moment].slice(-MAX_FLAGGED_MOMENTS)
-      return stay({ ...state, flaggedMoments: moments })
+      return stay({
+        ...state,
+        flaggedMoments: moments,
+        reminders: withReminder(state, {
+          at: event.moment.at,
+          kind: 'rewrite',
+          score: state.score,
+          signals: latestSignals(state),
+          quote: event.moment.quote,
+        }),
+      })
     }
     default:
       break
@@ -230,7 +296,7 @@ export function sessionReducer(state: SessionState, event: SessionEvent): Sessio
     case 'listening': {
       switch (event.type) {
         case 'SCORE_UPDATED': {
-          const next = withScore(state, event.score, event.level, event.at)
+          const next = withScore(state, event.score, event.level, event.at, event.signals)
           if (event.score >= ESCALATE_SCORE) {
             return stay({ ...next, phase: 'escalated', escalatedSince: event.at })
           }
@@ -246,29 +312,19 @@ export function sessionReducer(state: SessionState, event: SessionEvent): Sessio
     case 'escalated': {
       switch (event.type) {
         case 'SCORE_UPDATED': {
-          const next = withScore(state, event.score, event.level, event.at)
+          const next = withScore(state, event.score, event.level, event.at, event.signals)
           // Hysteresis: only a drop below 65 de-escalates; 65-69 holds.
           if (event.score < DEESCALATE_SCORE) {
             return stay({ ...next, phase: 'listening', escalatedSince: null })
           }
           if (interventionDue(next, event.at)) {
-            return stay({
-              ...next,
-              phase: 'intervention',
-              interventionEndsAt: event.at + INTERVENTION_DURATION_MS,
-              interventionCount: state.interventionCount + 1,
-            })
+            return stay(toIntervention(next, event.at))
           }
           return stay(next)
         }
         case 'TICK':
           if (interventionDue(state, event.at)) {
-            return stay({
-              ...state,
-              phase: 'intervention',
-              interventionEndsAt: event.at + INTERVENTION_DURATION_MS,
-              interventionCount: state.interventionCount + 1,
-            })
+            return stay(toIntervention(state, event.at))
           }
           return stay(state)
         case 'STOP_REQUESTED':
@@ -282,7 +338,7 @@ export function sessionReducer(state: SessionState, event: SessionEvent): Sessio
       switch (event.type) {
         case 'SCORE_UPDATED':
           // Score keeps flowing during the breathing pause; no phase change.
-          return stay(withScore(state, event.score, event.level, event.at))
+          return stay(withScore(state, event.score, event.level, event.at, event.signals))
         case 'INTERVENTION_ACKNOWLEDGED':
         case 'TICK': {
           const due =

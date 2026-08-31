@@ -1,5 +1,12 @@
 import type { ToneLabel } from '@/types/api'
-import type { EmotionLevel, LlmToneResult, SpeedLevel, TranscriptEntry } from '@/types/app'
+import type {
+  EmotionLevel,
+  FusionMode,
+  LlmToneResult,
+  SignalBreakdown,
+  SpeedLevel,
+  TranscriptEntry,
+} from '@/types/app'
 import { HIGH_RISK_EN, HIGH_RISK_ZH, MEDIUM_RISK_EN, MEDIUM_RISK_ZH } from './lexicon'
 
 // Pure scoring math for the 2s fusion loop. No timers, no React, no IO —
@@ -33,7 +40,8 @@ export const SEMANTIC_FLOOR_MIN_INTENSITY = 70
 export const SEMANTIC_FLOOR_SCORE = 72
 export const SEMANTIC_FLOOR_FRESH_MS = 10_000
 
-export type FusionMode = 'llm' | 'rules'
+/** Ceiling of the acoustic bonuses: the loudest, fastest tick possible. */
+export const MAX_ACOUSTIC_BONUS = 55
 
 interface EmotionMeta {
   color: string
@@ -55,6 +63,8 @@ export interface ScoreResult {
   highRiskKeywords: string[]
   mediumRiskKeywords: string[]
   fusionMode: FusionMode
+  /** Provenance of this exact score, for the explanation timeline. */
+  signals: SignalBreakdown
 }
 
 const unique = (items: string[]): string[] => [...new Set(items)]
@@ -107,6 +117,89 @@ export function detectKeywords(transcript: TranscriptEntry[], now: number) {
   }
 }
 
+/**
+ * Splits one tick into its two families of evidence — what the mic heard and
+ * what the words meant — without deciding anything. `computeScore` blends
+ * this; the explanation timeline renders it. Keeping one producer means the
+ * chart can never drift from the number it is explaining.
+ */
+export function describeSignals(
+  volume: number,
+  speedLevel: SpeedLevel,
+  transcript: TranscriptEntry[],
+  now: number,
+  llmTone: LlmToneResult | null,
+  llmAvailable: boolean,
+): SignalBreakdown {
+  const { highRiskKeywords, mediumRiskKeywords } = detectKeywords(transcript, now)
+  const volumeBonus = getVolumeBonus(volume)
+  const speedBonus = getSpeedBonus(speedLevel)
+
+  // Freshness decays 1 -> 0 over LLM_FRESH_MS; while speaking, analyze
+  // results land every ~4-6s so it stays near 1 in a live conversation.
+  const freshness =
+    llmAvailable && llmTone ? Math.max(0, 1 - (now - llmTone.at) / LLM_FRESH_MS) : 0
+  const live = llmTone !== null && freshness > 0
+
+  const keywordBonus = live
+    ? highRiskKeywords.length * LLM_MODE_HIGH_RISK_WEIGHT +
+      mediumRiskKeywords.length * LLM_MODE_MEDIUM_RISK_WEIGHT
+    : highRiskKeywords.length * LEGACY_HIGH_RISK_WEIGHT +
+      mediumRiskKeywords.length * LEGACY_MEDIUM_RISK_WEIGHT
+
+  return {
+    at: now,
+    mode: live ? 'llm' : 'rules',
+    acoustic: {
+      volume: Math.round(clampScore(volume)),
+      volumeBonus,
+      speedLevel,
+      speedBonus,
+      score: BASE_SCORE + volumeBonus + speedBonus,
+    },
+    semantic: {
+      tone: live ? llmTone.tone : null,
+      intensity: live ? llmTone.intensity : 0,
+      freshness,
+      weight: live ? LLM_MAX_WEIGHT * freshness : 0,
+      score: live ? clampScore(llmTone.intensity) * TONE_MULTIPLIER[llmTone.tone] : null,
+      highRiskKeywords,
+      mediumRiskKeywords,
+      keywordBonus,
+      floorApplied: false,
+    },
+  }
+}
+
+/** Freshness at which the semantic floor stops applying (age <= 10s). */
+const SEMANTIC_FLOOR_MIN_FRESHNESS = 1 - SEMANTIC_FLOOR_FRESH_MS / LLM_FRESH_MS
+
+/**
+ * The blend, and the only place it lives. Takes a breakdown and returns the
+ * fused score — so the live loop, the demo script, and any test all agree by
+ * construction rather than by keeping two formulas in sync.
+ */
+export function fuseScore(signals: SignalBreakdown): { score: number; floorApplied: boolean } {
+  const { acoustic, semantic } = signals
+  const rulesScore = clampScore(acoustic.score + semantic.keywordBonus)
+
+  if (signals.mode !== 'llm' || semantic.score === null) {
+    // Degraded mode: exactly the original rules-only formula.
+    return { score: rulesScore, floorApplied: false }
+  }
+
+  const blended = clampScore(
+    Math.round((1 - semantic.weight) * rulesScore + semantic.weight * semantic.score),
+  )
+  const floorApplied =
+    semantic.tone === 'aggressive' &&
+    semantic.intensity >= SEMANTIC_FLOOR_MIN_INTENSITY &&
+    semantic.freshness >= SEMANTIC_FLOOR_MIN_FRESHNESS &&
+    blended < SEMANTIC_FLOOR_SCORE
+
+  return { score: floorApplied ? SEMANTIC_FLOOR_SCORE : blended, floorApplied }
+}
+
 export function computeScore(
   volume: number,
   speedLevel: SpeedLevel,
@@ -115,44 +208,8 @@ export function computeScore(
   llmTone: LlmToneResult | null,
   llmAvailable: boolean,
 ): ScoreResult {
-  const keywordResult = detectKeywords(transcript, now)
-  const acousticScore = BASE_SCORE + getVolumeBonus(volume) + getSpeedBonus(speedLevel)
-
-  // Freshness decays 1 -> 0 over LLM_FRESH_MS; while speaking, analyze
-  // results land every ~4-6s so it stays near 1 in a live conversation.
-  const freshness =
-    llmAvailable && llmTone ? Math.max(0, 1 - (now - llmTone.at) / LLM_FRESH_MS) : 0
-
-  let score: number
-  let fusionMode: FusionMode
-
-  if (llmTone && freshness > 0) {
-    fusionMode = 'llm'
-    const rulesScore = clampScore(
-      acousticScore +
-        keywordResult.highRiskKeywords.length * LLM_MODE_HIGH_RISK_WEIGHT +
-        keywordResult.mediumRiskKeywords.length * LLM_MODE_MEDIUM_RISK_WEIGHT,
-    )
-    const semanticScore = clampScore(llmTone.intensity) * TONE_MULTIPLIER[llmTone.tone]
-    const llmWeight = LLM_MAX_WEIGHT * freshness
-    score = clampScore(Math.round((1 - llmWeight) * rulesScore + llmWeight * semanticScore))
-
-    if (
-      llmTone.tone === 'aggressive' &&
-      llmTone.intensity >= SEMANTIC_FLOOR_MIN_INTENSITY &&
-      now - llmTone.at <= SEMANTIC_FLOOR_FRESH_MS
-    ) {
-      score = Math.max(score, SEMANTIC_FLOOR_SCORE)
-    }
-  } else {
-    // Degraded mode: exactly the original rules-only formula.
-    fusionMode = 'rules'
-    score = clampScore(
-      acousticScore +
-        keywordResult.highRiskKeywords.length * LEGACY_HIGH_RISK_WEIGHT +
-        keywordResult.mediumRiskKeywords.length * LEGACY_MEDIUM_RISK_WEIGHT,
-    )
-  }
+  const signals = describeSignals(volume, speedLevel, transcript, now, llmTone, llmAvailable)
+  const { score, floorApplied } = fuseScore(signals)
 
   const emotionLevel = getEmotionLevel(score)
   const meta = EMOTION_META[emotionLevel]
@@ -162,8 +219,11 @@ export function computeScore(
     emotionLevel,
     emotionColor: meta.color,
     emotionLabel: meta.label,
-    highRiskKeywords: keywordResult.highRiskKeywords,
-    mediumRiskKeywords: keywordResult.mediumRiskKeywords,
-    fusionMode,
+    highRiskKeywords: signals.semantic.highRiskKeywords,
+    mediumRiskKeywords: signals.semantic.mediumRiskKeywords,
+    fusionMode: signals.mode,
+    signals: floorApplied
+      ? { ...signals, semantic: { ...signals.semantic, floorApplied: true } }
+      : signals,
   }
 }

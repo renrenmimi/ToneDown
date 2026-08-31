@@ -1,5 +1,7 @@
 import { createI18n } from '@/shared/i18n/createI18n'
+import type { ToneLabel } from '@/types/api'
 import type { EmotionLevel, SpeedLevel } from '@/types/app'
+import type { ReminderKind, TriggerDriver } from './lib/explain'
 
 interface LiveSessionStrings {
   subtitle: string
@@ -73,6 +75,37 @@ interface LiveSessionStrings {
     exhale: string
     steady: string
     fallback: string
+  }
+  explain: {
+    title: string
+    hint: string
+    chartLabel: string
+    axisStart: string
+    axisEnd: string
+    trackAcoustic: string
+    trackAcousticHint: string
+    trackSemantic: string
+    trackSemanticHint: string
+    keywordTick: string
+    keywordSeparator: string
+    lexiconOnly: string
+    empty: string
+    kind: Record<ReminderKind, string>
+    heading: (index: number, clock: string) => string
+    rule: Record<ReminderKind, string>
+    scoreAtTrigger: (score: number) => string
+    driverLabel: string
+    driver: Record<TriggerDriver, string>
+    acousticLine: (volume: number, speed: string, points: string) => string
+    semanticLine: (tone: string, intensity: number, points: string) => string
+    semanticIdleLine: string
+    keywordLine: (keywords: string, points: string) => string
+    keywordNone: string
+    floorNote: string
+    shareLabel: string
+    quoteLabel: string
+    noSignals: string
+    tone: Record<ToneLabel, string>
   }
 }
 
@@ -172,6 +205,55 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       steady: '我稳住了',
       fallback: '一次呼吸之后，话会说得更好。',
     },
+    explain: {
+      title: '解释时间轴',
+      hint: '两路信号分开画：麦克风听到的，和话里的意思。每个标记都是一次提醒——点开看它当时为什么触发。',
+      chartLabel: '声学与语义信号时间轴',
+      axisStart: '开始',
+      axisEnd: '现在',
+      trackAcoustic: '声学信号 · 音量与语速',
+      trackAcousticHint: '读的是波形，不看内容。',
+      trackSemantic: '语义信号 · AI 语气与关键词',
+      trackSemanticHint: '读的是转写文本：AI 的语气判断，加上本地关键词。',
+      keywordTick: '命中关键词',
+      keywordSeparator: '、',
+      lexiconOnly: '规则模式',
+      empty: '这次对话还没有触发提醒。两条信号会一直画下去。',
+      kind: {
+        breathing: '呼吸暂停',
+        rewrite: '换个说法',
+      },
+      heading: (index, clock) => `第 ${index} 次提醒 · ${clock}`,
+      rule: {
+        breathing: '触发规则：融合分数 ≥ 70，并持续 5 秒。',
+        rewrite: '触发规则：出现高危措辞，或分数 ≥ 70 持续 5 秒。',
+      },
+      scoreAtTrigger: (score) => `当时分数 ${score}`,
+      driverLabel: '主要驱动',
+      driver: {
+        acoustic: '声学信号（音量 / 语速）',
+        semantic: 'AI 语义判断',
+        keyword: '高危措辞',
+        combined: '声学与语义共同推高',
+      },
+      acousticLine: (volume, speed, points) => `音量 ${volume}%，语速${speed} → ${points} 分`,
+      semanticLine: (tone, intensity, points) =>
+        `AI 判定「${tone}」，强度 ${intensity} → ${points} 分`,
+      semanticIdleLine: 'AI 在休息，这一拍只有本地关键词在说话。',
+      keywordLine: (keywords, points) => `命中措辞：${keywords} → ${points} 分`,
+      keywordNone: '没有命中高危措辞。',
+      floorNote: '安静但有敌意：语义下限把分数抬到了 72。',
+      shareLabel: '各路信号的占比',
+      quoteLabel: '当时那句',
+      noSignals: '这次提醒早于第一次打分，没有可展示的信号。',
+      tone: {
+        aggressive: '有攻击性',
+        'passive-aggressive': '阴阳怪气',
+        defensive: '防御',
+        neutral: '中性',
+        positive: '友善',
+      },
+    },
   },
   'en-US': {
     subtitle: 'Couple Tone Tracking Assistant',
@@ -268,6 +350,55 @@ export const { useT: useLiveSessionT, t: liveSessionT } = createI18n<LiveSession
       exhale: 'Let it go',
       steady: "I'm steady",
       fallback: "You're one breath away from a better sentence.",
+    },
+    explain: {
+      title: 'Explanation timeline',
+      hint: 'Two signals, drawn apart: what the microphone heard and what the words meant. Each marker is a reminder — open one to see why it fired.',
+      chartLabel: 'Acoustic and semantic signal timeline',
+      axisStart: 'start',
+      axisEnd: 'now',
+      trackAcoustic: 'Acoustic · loudness and pace',
+      trackAcousticHint: 'Read from the waveform; it never looks at content.',
+      trackSemantic: 'Semantic · AI tone and keywords',
+      trackSemanticHint: 'Read from the transcript: the AI tone call plus the local lexicon.',
+      keywordTick: 'keyword hit',
+      keywordSeparator: ', ',
+      lexiconOnly: 'rules mode',
+      empty: 'No reminder has fired yet. Both signals keep drawing regardless.',
+      kind: {
+        breathing: 'Breathing pause',
+        rewrite: 'Rewrite offer',
+      },
+      heading: (index, clock) => `Reminder ${index} · ${clock}`,
+      rule: {
+        breathing: 'Rule: the fused score stayed at 70 or above for 5 seconds.',
+        rewrite: 'Rule: a high-risk phrase landed, or the score held at 70+ for 5 seconds.',
+      },
+      scoreAtTrigger: (score) => `score ${score} at the time`,
+      driverLabel: 'Main driver',
+      driver: {
+        acoustic: 'Acoustic signal (loudness / pace)',
+        semantic: 'AI tone read',
+        keyword: 'High-risk phrasing',
+        combined: 'Acoustic and semantic together',
+      },
+      acousticLine: (volume, speed, points) => `Loudness ${volume}%, pace ${speed} → ${points} pts`,
+      semanticLine: (tone, intensity, points) =>
+        `AI read "${tone}", intensity ${intensity} → ${points} pts`,
+      semanticIdleLine: 'AI resting — only the local lexicon spoke on this tick.',
+      keywordLine: (keywords, points) => `Matched phrasing: ${keywords} → ${points} pts`,
+      keywordNone: 'No high-risk phrasing matched.',
+      floorNote: 'Quiet but hostile: the semantic floor lifted the score to 72.',
+      shareLabel: 'Share of the evidence',
+      quoteLabel: 'The sentence',
+      noSignals: 'This reminder fired before the first scored tick, so there is no signal to show.',
+      tone: {
+        aggressive: 'aggressive',
+        'passive-aggressive': 'passive-aggressive',
+        defensive: 'defensive',
+        neutral: 'neutral',
+        positive: 'positive',
+      },
     },
   },
 })
