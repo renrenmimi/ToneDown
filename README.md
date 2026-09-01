@@ -7,6 +7,10 @@ A bilingual tone-coaching web application for practicing calmer communication. I
 
 ![The live session with tone indicators and rewrite suggestions](docs/screenshot.jpg)
 
+![The explanation timeline: two signal tracks, and the exact breakdown behind each reminder](docs/explanation-timeline.jpg)
+
+*The explanation timeline — the acoustic track (loudness and pace, read from the waveform) and the semantic track (AI tone and keywords, read from the transcript) are drawn apart, and every reminder keeps the breakdown that fired it.*
+
 ## Main areas
 
 | Route | Purpose |
