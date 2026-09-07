@@ -33,3 +33,6 @@ dist-ssr
 *.sw?
 test-results/
 playwright-report/
+
+# Claude Code local session data
+.claude/
